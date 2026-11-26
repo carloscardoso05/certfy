@@ -5,8 +5,12 @@ defmodule CertfyWeb.EventLiveTest do
   import Certfy.EventsFixtures
 
   @create_attrs %{name: "some name", template_path: "some template_path", extra_data: %{}}
-  @update_attrs %{name: "some updated name", template_path: "some updated template_path", extra_data: %{}}
-  @invalid_attrs %{name: nil, template_path: nil, extra_data: nil}
+  @update_attrs %{
+    name: "some updated name",
+    template_path: "some updated template_path",
+    extra_data: %{}
+  }
+  @invalid_attrs %{name: nil, template_path: nil}
 
   setup :register_and_log_in_user
 

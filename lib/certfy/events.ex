@@ -184,6 +184,13 @@ defmodule Certfy.Events do
   end
 
   @doc """
+  Returns the list of batches for the given event.
+  """
+  def list_batches(%Scope{} = scope, %Event{} = event) do
+    Repo.all_by(Batch, user_id: scope.user.id, event_id: event.id)
+  end
+
+  @doc """
   Gets a single batch.
 
   Raises `Ecto.NoResultsError` if the Batch does not exist.
@@ -202,6 +209,15 @@ defmodule Certfy.Events do
   end
 
   @doc """
+  Gets a single batch for the given event.
+
+  Raises `Ecto.NoResultsError` if the Batch does not exist.
+  """
+  def get_batch!(%Scope{} = scope, %Event{} = event, id) do
+    Repo.get_by!(Batch, id: id, user_id: scope.user.id, event_id: event.id)
+  end
+
+  @doc """
   Creates a batch.
 
   ## Examples
@@ -214,6 +230,8 @@ defmodule Certfy.Events do
 
   """
   def create_batch(%Scope{} = scope, %Event{} = event, attrs) do
+    true = event.user_id === scope.user.id
+
     with {:ok, batch = %Batch{}} <-
            event
            |> Ecto.build_assoc(:batches)
@@ -324,6 +342,13 @@ defmodule Certfy.Events do
   end
 
   @doc """
+  Returns the list of participants for the given batch.
+  """
+  def list_participants(%Scope{} = scope, %Batch{} = batch) do
+    Repo.all_by(Participant, user_id: scope.user.id, batch_id: batch.id)
+  end
+
+  @doc """
   Gets a single participant.
 
   Raises `Ecto.NoResultsError` if the Participant does not exist.
@@ -342,6 +367,15 @@ defmodule Certfy.Events do
   end
 
   @doc """
+  Gets a single participant for the given batch.
+
+  Raises `Ecto.NoResultsError` if the Participant does not exist.
+  """
+  def get_participant!(%Scope{} = scope, %Batch{} = batch, id) do
+    Repo.get_by!(Participant, id: id, user_id: scope.user.id, batch_id: batch.id)
+  end
+
+  @doc """
   Creates a participant.
 
   ## Examples
@@ -354,9 +388,11 @@ defmodule Certfy.Events do
 
   """
   def create_participant(%Scope{} = scope, %Batch{} = batch, attrs) do
+    true = batch.user_id === scope.user.id
+
     with {:ok, participant = %Participant{}} <-
            batch
-           |> Ecto.build_assoc(:batch)
+           |> Ecto.build_assoc(:participants)
            |> Participant.changeset(attrs, scope)
            |> Repo.insert() do
       broadcast_participant(scope, {:created, participant})

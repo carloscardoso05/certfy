@@ -18,7 +18,9 @@ defmodule CertfyWeb.ParticipantLive.Form do
         <.input field={@form[:email]} type="text" label="Email" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Participant</.button>
-          <.button navigate={return_path(@current_scope, @return_to, @participant)}>Cancel</.button>
+          <.button navigate={return_path(@current_scope, @event, @batch, @return_to, @participant)}>
+            Cancel
+          </.button>
         </footer>
       </.form>
     </Layouts.app>
@@ -26,12 +28,9 @@ defmodule CertfyWeb.ParticipantLive.Form do
   end
 
   @impl true
-  def mount(%{"batch_id" => batch_id} = params, _session, socket) do
-    batch = Events.get_batch!(socket.assigns.current_scope, batch_id)
-
+  def mount(params, _session, socket) do
     {:ok,
      socket
-     |> assign(:batch, batch)
      |> assign(:return_to, return_to(params["return_to"]))
      |> apply_action(socket.assigns.live_action, params)}
   end
@@ -40,7 +39,8 @@ defmodule CertfyWeb.ParticipantLive.Form do
   defp return_to(_), do: "index"
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    participant = Events.get_participant!(socket.assigns.current_scope, id)
+    participant =
+      Events.get_participant!(socket.assigns.current_scope, socket.assigns.batch, id)
 
     socket
     |> assign(:page_title, "Edit Participant")
@@ -90,7 +90,14 @@ defmodule CertfyWeb.ParticipantLive.Form do
          socket
          |> put_flash(:info, "Participant updated successfully")
          |> push_navigate(
-           to: return_path(socket.assigns.current_scope, socket.assigns.return_to, participant)
+           to:
+             return_path(
+               socket.assigns.current_scope,
+               socket.assigns.event,
+               socket.assigns.batch,
+               socket.assigns.return_to,
+               participant
+             )
          )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -109,7 +116,14 @@ defmodule CertfyWeb.ParticipantLive.Form do
          socket
          |> put_flash(:info, "Participant created successfully")
          |> push_navigate(
-           to: return_path(socket.assigns.current_scope, socket.assigns.return_to, participant)
+           to:
+             return_path(
+               socket.assigns.current_scope,
+               socket.assigns.event,
+               socket.assigns.batch,
+               socket.assigns.return_to,
+               participant
+             )
          )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -117,6 +131,11 @@ defmodule CertfyWeb.ParticipantLive.Form do
     end
   end
 
-  defp return_path(_scope, "index", _participant), do: ~p"/participants"
-  defp return_path(_scope, "show", participant), do: ~p"/participants/#{participant}"
+  defp return_path(_scope, event, batch, "index", _participant) do
+    ~p"/events/#{event}/batches/#{batch}/participants"
+  end
+
+  defp return_path(_scope, event, batch, "show", participant) do
+    ~p"/events/#{event}/batches/#{batch}/participants/#{participant}"
+  end
 end

@@ -11,10 +11,15 @@ defmodule CertfyWeb.ParticipantLive.Show do
         Participant {@participant.id}
         <:subtitle>This is a participant record from your database.</:subtitle>
         <:actions>
-          <.button navigate={~p"/participants"}>
+          <.button navigate={~p"/events/#{@event}/batches/#{@batch}/participants"}>
             <.icon name="hero-arrow-left" />
           </.button>
-          <.button variant="primary" navigate={~p"/participants/#{@participant}/edit?return_to=show"}>
+          <.button
+            variant="primary"
+            navigate={
+              ~p"/events/#{@event}/batches/#{@batch}/participants/#{@participant}/edit?return_to=show"
+            }
+          >
             <.icon name="hero-pencil-square" /> Edit participant
           </.button>
         </:actions>
@@ -23,7 +28,7 @@ defmodule CertfyWeb.ParticipantLive.Show do
       <.list>
         <:item title="Name">{@participant.name}</:item>
         <:item title="Email">{@participant.email}</:item>
-        <:item title="Extra data">{@participant.extra_data}</:item>
+        <:item title="Extra data">{inspect(@participant.extra_data)}</:item>
       </.list>
     </Layouts.app>
     """
@@ -38,7 +43,10 @@ defmodule CertfyWeb.ParticipantLive.Show do
     {:ok,
      socket
      |> assign(:page_title, "Show Participant")
-     |> assign(:participant, Events.get_participant!(socket.assigns.current_scope, id))}
+     |> assign(
+       :participant,
+       Events.get_participant!(socket.assigns.current_scope, socket.assigns.batch, id)
+     )}
   end
 
   @impl true
@@ -56,7 +64,9 @@ defmodule CertfyWeb.ParticipantLive.Show do
     {:noreply,
      socket
      |> put_flash(:error, "The current participant was deleted.")
-     |> push_navigate(to: ~p"/participants")}
+     |> push_navigate(
+       to: ~p"/events/#{socket.assigns.event}/batches/#{socket.assigns.batch}/participants"
+     )}
   end
 
   def handle_info({type, %Certfy.Events.Participant{}}, socket)

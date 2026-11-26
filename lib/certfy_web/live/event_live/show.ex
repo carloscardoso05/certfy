@@ -14,6 +14,9 @@ defmodule CertfyWeb.EventLive.Show do
           <.button navigate={~p"/events"}>
             <.icon name="hero-arrow-left" />
           </.button>
+          <.button navigate={~p"/events/#{@event}/batches"}>
+            <.icon name="hero-rectangle-stack" /> Batches
+          </.button>
           <.button variant="primary" navigate={~p"/events/#{@event}/edit?return_to=show"}>
             <.icon name="hero-pencil-square" /> Edit event
           </.button>
@@ -23,7 +26,7 @@ defmodule CertfyWeb.EventLive.Show do
       <.list>
         <:item title="Name">{@event.name}</:item>
         <:item title="Template path">{@event.template_path}</:item>
-        <:item title="Extra data">{@event.extra_data}</:item>
+        <:item title="Extra data">{inspect(@event.extra_data)}</:item>
       </.list>
     </Layouts.app>
     """

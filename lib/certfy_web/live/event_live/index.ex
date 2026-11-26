@@ -23,7 +23,7 @@ defmodule CertfyWeb.EventLive.Index do
       >
         <:col :let={{_id, event}} label="Name">{event.name}</:col>
         <:col :let={{_id, event}} label="Template path">{event.template_path}</:col>
-        <:col :let={{_id, event}} label="Extra data">{event.extra_data}</:col>
+        <:col :let={{_id, event}} label="Extra data">{inspect(event.extra_data)}</:col>
         <:action :let={{_id, event}}>
           <div class="sr-only">
             <.link navigate={~p"/events/#{event}"}>Show</.link>

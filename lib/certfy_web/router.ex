@@ -45,36 +45,57 @@ defmodule CertfyWeb.Router do
     end
   end
 
-  ## Authentication routes
+  @auth_hooks [{CertfyWeb.UserAuth, :require_authenticated}]
 
   scope "/", CertfyWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    live_session :require_authenticated_user,
-      on_mount: [{CertfyWeb.UserAuth, :require_authenticated}] do
-      live "/users/settings", UserLive.Settings, :edit
-      live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+    scope "/users" do
+      live_session :user_settings, on_mount: @auth_hooks do
+        live "/settings", UserLive.Settings, :edit
+        live "/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+      end
 
-      live "/events", EventLive.Index, :index
-      live "/events/new", EventLive.Form, :new
-      live "/events/:id", EventLive.Show, :show
-      live "/events/:id/edit", EventLive.Form, :edit
-
-      live "/events/:event_id/batches", BatchLive.Index, :index
-      live "/events/:event_id/batches/new", BatchLive.Form, :new
-      live "/events/:event_id/batches/:id", BatchLive.Show, :show
-      live "/events/:event_id/batches/:id/edit", BatchLive.Form, :edit
-
-      live "/events/:event_id/batches/:batch_id/participants", ParticipantLive.Index, :index
-      live "/events/:event_id/batches/:batch_id/participants/new", ParticipantLive.Form, :new
-      live "/events/:event_id/batches/:batch_id/participants/:id", ParticipantLive.Show, :show
-
-      live "/events/:event_id/batches/:batch_id/participants/:id/edit",
-           ParticipantLive.Form,
-           :edit
+      post "/update-password", UserSessionController, :update_password
     end
 
-    post "/users/update-password", UserSessionController, :update_password
+    scope "/events" do
+      live_session :events, on_mount: @auth_hooks do
+        live "/", EventLive.Index, :index
+        live "/new", EventLive.Form, :new
+        live "/:id", EventLive.Show, :show
+        live "/:id/edit", EventLive.Form, :edit
+      end
+    end
+
+    scope "/events/:event_id/batches" do
+      live_session :batches,
+        on_mount:
+          @auth_hooks ++
+            [
+              {CertfyWeb.ResourceHooks, :load_event}
+            ] do
+        live "/", BatchLive.Index, :index
+        live "/new", BatchLive.Form, :new
+        live "/:id", BatchLive.Show, :show
+        live "/:id/edit", BatchLive.Form, :edit
+      end
+    end
+
+    scope "/events/:event_id/batches/:batch_id/participants" do
+      live_session :participants,
+        on_mount:
+          @auth_hooks ++
+            [
+              {CertfyWeb.ResourceHooks, :load_event},
+              {CertfyWeb.ResourceHooks, :load_batch}
+            ] do
+        live "/", ParticipantLive.Index, :index
+        live "/new", ParticipantLive.Form, :new
+        live "/:id", ParticipantLive.Show, :show
+        live "/:id/edit", ParticipantLive.Form, :edit
+      end
+    end
   end
 
   scope "/", CertfyWeb do

@@ -17,7 +17,9 @@ defmodule CertfyWeb.BatchLive.Form do
         <.input field={@form[:name]} type="text" label="Name" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Batch</.button>
-          <.button navigate={return_path(@current_scope, @return_to, @batch)}>Cancel</.button>
+          <.button navigate={return_path(@current_scope, @event, @return_to, @batch)}>
+            Cancel
+          </.button>
         </footer>
       </.form>
     </Layouts.app>
@@ -25,12 +27,9 @@ defmodule CertfyWeb.BatchLive.Form do
   end
 
   @impl true
-  def mount(%{"event_id" => event_id} = params, _session, socket) do
-    event = Events.get_event!(socket.assigns.current_scope, event_id)
-
+  def mount(params, _session, socket) do
     {:ok,
      socket
-     |> assign(:event, event)
      |> assign(:return_to, return_to(params["return_to"]))
      |> apply_action(socket.assigns.live_action, params)}
   end
@@ -39,7 +38,7 @@ defmodule CertfyWeb.BatchLive.Form do
   defp return_to(_), do: "index"
 
   defp apply_action(socket, :edit, %{"id" => id}) do
-    batch = Events.get_batch!(socket.assigns.current_scope, id)
+    batch = Events.get_batch!(socket.assigns.current_scope, socket.assigns.event, id)
 
     socket
     |> assign(:page_title, "Edit Batch")
@@ -75,7 +74,13 @@ defmodule CertfyWeb.BatchLive.Form do
          socket
          |> put_flash(:info, "Batch updated successfully")
          |> push_navigate(
-           to: return_path(socket.assigns.current_scope, socket.assigns.return_to, batch)
+           to:
+             return_path(
+               socket.assigns.current_scope,
+               socket.assigns.event,
+               socket.assigns.return_to,
+               batch
+             )
          )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -90,7 +95,13 @@ defmodule CertfyWeb.BatchLive.Form do
          socket
          |> put_flash(:info, "Batch created successfully")
          |> push_navigate(
-           to: return_path(socket.assigns.current_scope, socket.assigns.return_to, batch)
+           to:
+             return_path(
+               socket.assigns.current_scope,
+               socket.assigns.event,
+               socket.assigns.return_to,
+               batch
+             )
          )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -98,6 +109,6 @@ defmodule CertfyWeb.BatchLive.Form do
     end
   end
 
-  defp return_path(_scope, "index", _batch), do: ~p"/batches"
-  defp return_path(_scope, "show", batch), do: ~p"/batches/#{batch}"
+  defp return_path(_scope, event, "index", _batch), do: ~p"/events/#{event}/batches"
+  defp return_path(_scope, event, "show", batch), do: ~p"/events/#{event}/batches/#{batch}"
 end

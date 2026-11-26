@@ -6,7 +6,7 @@ defmodule Certfy.Events.Batch do
 
   schema "batches" do
     field :name, :string
-    field :extra_data, :map
+    field :extra_data, :map, default: %{}
     field :user_id, :id
 
     belongs_to :event, Event

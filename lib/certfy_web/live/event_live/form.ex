@@ -56,7 +56,9 @@ defmodule CertfyWeb.EventLive.Form do
 
   @impl true
   def handle_event("validate", %{"event" => event_params}, socket) do
-    changeset = Events.change_event(socket.assigns.current_scope, socket.assigns.event, event_params)
+    changeset =
+      Events.change_event(socket.assigns.current_scope, socket.assigns.event, event_params)
+
     {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
   end
 

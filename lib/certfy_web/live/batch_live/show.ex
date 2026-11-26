@@ -11,10 +11,16 @@ defmodule CertfyWeb.BatchLive.Show do
         Batch {@batch.id}
         <:subtitle>This is a batch record from your database.</:subtitle>
         <:actions>
-          <.button navigate={~p"/batches"}>
+          <.button navigate={~p"/events/#{@event}/batches"}>
             <.icon name="hero-arrow-left" />
           </.button>
-          <.button variant="primary" navigate={~p"/batches/#{@batch}/edit?return_to=show"}>
+          <.button navigate={~p"/events/#{@event}/batches/#{@batch}/participants"}>
+            <.icon name="hero-users" /> Participants
+          </.button>
+          <.button
+            variant="primary"
+            navigate={~p"/events/#{@event}/batches/#{@batch}/edit?return_to=show"}
+          >
             <.icon name="hero-pencil-square" /> Edit batch
           </.button>
         </:actions>
@@ -22,7 +28,7 @@ defmodule CertfyWeb.BatchLive.Show do
 
       <.list>
         <:item title="Name">{@batch.name}</:item>
-        <:item title="Extra data">{@batch.extra_data}</:item>
+        <:item title="Extra data">{inspect(@batch.extra_data)}</:item>
       </.list>
     </Layouts.app>
     """
@@ -37,7 +43,10 @@ defmodule CertfyWeb.BatchLive.Show do
     {:ok,
      socket
      |> assign(:page_title, "Show Batch")
-     |> assign(:batch, Events.get_batch!(socket.assigns.current_scope, id))}
+     |> assign(
+       :batch,
+       Events.get_batch!(socket.assigns.current_scope, socket.assigns.event, id)
+     )}
   end
 
   @impl true
@@ -55,7 +64,7 @@ defmodule CertfyWeb.BatchLive.Show do
     {:noreply,
      socket
      |> put_flash(:error, "The current batch was deleted.")
-     |> push_navigate(to: ~p"/batches")}
+     |> push_navigate(to: ~p"/events/#{socket.assigns.event}/batches")}
   end
 
   def handle_info({type, %Certfy.Events.Batch{}}, socket)
