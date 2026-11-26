@@ -4,7 +4,11 @@ defmodule Certfy.Events do
   """
 
   import Ecto.Query, warn: false
+
+  require Logger
+
   alias Certfy.Repo
+  alias Certfy.Storage
 
   alias Certfy.Events.Event
   alias Certfy.Accounts.Scope
@@ -98,13 +102,53 @@ defmodule Certfy.Events do
   """
   def update_event(%Scope{} = scope, %Event{} = event, attrs, opts \\ []) do
     true = event.user_id == scope.user.id
+    old_template_path = event.template_path
 
     with {:ok, event = %Event{}} <-
            event
            |> Event.changeset(attrs, scope, opts)
            |> Repo.update() do
+      maybe_delete_replaced_template(old_template_path, event.template_path)
       broadcast_event(scope, {:updated, event})
       {:ok, event}
+    end
+  end
+
+  @doc """
+  Removes the template from an event and deletes the stored object.
+  """
+  def remove_event_template(%Scope{} = scope, %Event{} = event) do
+    true = event.user_id == scope.user.id
+
+    with :ok <- delete_template_object(event.template_path),
+         {:ok, event = %Event{}} <-
+           event
+           |> Ecto.Changeset.change(template_path: nil)
+           |> Repo.update() do
+      broadcast_event(scope, {:updated, event})
+      {:ok, event}
+    end
+  end
+
+  defp maybe_delete_replaced_template(nil, _new_template_path), do: :ok
+  defp maybe_delete_replaced_template(path, path), do: :ok
+
+  defp maybe_delete_replaced_template(old_template_path, _new_template_path) do
+    delete_template_object(old_template_path)
+    :ok
+  end
+
+  defp delete_template_object(nil), do: :ok
+
+  defp delete_template_object(template_path) do
+    case Storage.delete_template(template_path) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Could not delete template #{template_path}: #{inspect(reason)}")
+
+        {:error, reason}
     end
   end
 

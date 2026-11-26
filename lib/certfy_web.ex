@@ -86,6 +86,7 @@ defmodule CertfyWeb do
       import Phoenix.HTML
       # Core UI components
       import CertfyWeb.CoreComponents
+      import CertfyWeb.Components.KeyValue, only: [key_value: 1, key_value_list: 1]
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

@@ -5,6 +5,7 @@ defmodule CertfyWeb.EventLive.Form do
 
   alias Certfy.Events
   alias Certfy.Events.Event
+  alias CertfyWeb.Components.KeyValue
 
   @max_template_size 10_000_000
   @template_extension ".pptx"
@@ -36,9 +37,19 @@ defmodule CertfyWeb.EventLive.Form do
                 <.input field={@form[:name]} type="text" label="Nome" required />
               </section>
 
+              <.key_value
+                id="event-extra-data"
+                label="Dados adicionais"
+                rows={@extra_data_rows}
+                on_add="add_extra_data"
+                on_remove="remove_extra_data"
+              />
+
               <section class="rounded-box border border-dashed border-base-300 p-4">
                 <label class="label" for={@uploads.template.ref}>
-                  Arquivo de template (.pptx)
+                  {if @event.template_path,
+                    do: "Substituir template (.pptx)",
+                    else: "Arquivo de template (.pptx)"}
                 </label>
                 <.live_file_input
                   upload={@uploads.template}
@@ -102,6 +113,7 @@ defmodule CertfyWeb.EventLive.Form do
     socket
     |> assign(:page_title, "Editar evento")
     |> assign(:event, event)
+    |> assign(:extra_data_rows, KeyValue.rows_from_map(event.extra_data))
     |> assign(:form, to_form(Events.change_event(socket.assigns.current_scope, event)))
   end
 
@@ -111,18 +123,37 @@ defmodule CertfyWeb.EventLive.Form do
     socket
     |> assign(:page_title, "Novo evento")
     |> assign(:event, event)
+    |> assign(:extra_data_rows, [])
     |> assign(:form, to_form(Events.change_event(socket.assigns.current_scope, event)))
   end
 
   @impl true
-  def handle_event("validate", %{"event" => event_params}, socket) do
+  def handle_event("validate", %{"event" => event_params} = params, socket) do
+    {event_params, rows} = merge_extra_data(params, event_params)
+
     changeset =
       Events.change_event(socket.assigns.current_scope, socket.assigns.event, event_params)
 
-    {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
+    {:noreply, assign(socket, form: to_form(changeset, action: :validate), extra_data_rows: rows)}
   end
 
-  def handle_event("save", %{"event" => event_params}, socket) do
+  def handle_event("add_extra_data", _params, socket) do
+    {:noreply, assign(socket, :extra_data_rows, KeyValue.add_row(socket.assigns.extra_data_rows))}
+  end
+
+  def handle_event("remove_extra_data", %{"index" => index}, socket) do
+    {:noreply,
+     assign(
+       socket,
+       :extra_data_rows,
+       KeyValue.remove_row(socket.assigns.extra_data_rows, index)
+     )}
+  end
+
+  def handle_event("save", %{"event" => event_params} = params, socket) do
+    {event_params, rows} = merge_extra_data(params, event_params)
+    socket = assign(socket, :extra_data_rows, rows)
+
     case store_template(socket) do
       {:ok, template_path} ->
         save_event(socket, socket.assigns.live_action, event_params, template_path)
@@ -130,6 +161,11 @@ defmodule CertfyWeb.EventLive.Form do
       {:error, message} ->
         {:noreply, put_flash(socket, :error, message)}
     end
+  end
+
+  defp merge_extra_data(params, form_params) do
+    rows = KeyValue.rows_from_params(params["extra_data"])
+    {Map.put(form_params, "extra_data", KeyValue.to_map(rows)), rows}
   end
 
   defp save_event(socket, :edit, event_params, template_path) do

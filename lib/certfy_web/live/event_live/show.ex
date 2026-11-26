@@ -20,6 +20,24 @@ defmodule CertfyWeb.EventLive.Show do
             <.icon name="hero-rectangle-stack" /> Lotes
           </.button>
 
+          <.button
+            :if={@event.template_path}
+            href={~p"/events/#{@event}/template"}
+            download
+            class="btn btn-ghost"
+          >
+            <.icon name="hero-arrow-down-tray" /> Baixar template
+          </.button>
+
+          <.button
+            :if={@event.template_path}
+            phx-click="remove_template"
+            data-confirm="Remover o template deste evento?"
+            class="btn btn-ghost text-error"
+          >
+            <.icon name="hero-trash" /> Remover template
+          </.button>
+
           <.button variant="primary" navigate={~p"/events/#{@event}/edit?return_to=show"}>
             <.icon name="hero-pencil-square" /> Editar evento
           </.button>
@@ -37,11 +55,13 @@ defmodule CertfyWeb.EventLive.Show do
             {if @event.template_path, do: "Sim", else: "Não"}
           </div>
         </div>
-        <div class="stat">
-          <div class="stat-title">Dados adicionais</div>
-          <div class="stat-value text-lg">{map_size(@event.extra_data || %{})}</div>
-        </div>
       </div>
+
+      <.key_value_list
+        id="event-extra-data-list"
+        data={@event.extra_data}
+        class="mt-6"
+      />
     </Layouts.app>
     """
   end
@@ -56,6 +76,20 @@ defmodule CertfyWeb.EventLive.Show do
      socket
      |> assign(:page_title, "Evento")
      |> assign(:event, Events.get_event!(socket.assigns.current_scope, id))}
+  end
+
+  @impl true
+  def handle_event("remove_template", _params, socket) do
+    case Events.remove_event_template(socket.assigns.current_scope, socket.assigns.event) do
+      {:ok, event} ->
+        {:noreply,
+         socket
+         |> assign(:event, event)
+         |> put_flash(:info, "Template removido.")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "Não foi possível remover o template.")}
+    end
   end
 
   @impl true

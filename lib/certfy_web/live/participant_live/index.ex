@@ -35,7 +35,9 @@ defmodule CertfyWeb.ParticipantLive.Index do
               <:col :let={{_id, participant}} label="Nome">
                 <span class="font-medium">{participant.name}</span>
               </:col>
-              <:col :let={{_id, participant}} label="E-mail">{participant.email}</:col>
+              <:col :let={{_id, participant}} label="E-mail">
+                {participant.email || "—"}
+              </:col>
               <:col :let={{_id, participant}} label="Dados adicionais">
                 <span class="badge badge-ghost badge-sm">
                   {map_size(participant.extra_data || %{})}

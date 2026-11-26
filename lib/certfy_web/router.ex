@@ -63,6 +63,8 @@ defmodule CertfyWeb.Router do
     end
 
     scope "/events" do
+      get "/:id/template", EventController, :download_template
+
       live_session :events, on_mount: @auth_hooks do
         live "/", EventLive.Index, :index
         live "/new", EventLive.Form, :new

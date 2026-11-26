@@ -61,6 +61,33 @@ defmodule Certfy.EventsTest do
       assert event.extra_data == %{}
     end
 
+    test "update_event/4 deletes the replaced template object" do
+      scope = user_scope_fixture()
+      event = event_fixture(scope, %{template_path: "templates/old.pptx"})
+      Process.put(:storage_stub_notify, self())
+
+      assert {:ok, %Event{} = updated} =
+               Events.update_event(scope, event, %{name: "new name"},
+                 template_path: "templates/new.pptx"
+               )
+
+      assert updated.template_path == "templates/new.pptx"
+      assert_receive {:storage_request, :delete, url}
+      assert url =~ "old.pptx"
+    end
+
+    test "remove_event_template/2 clears and deletes the template" do
+      scope = user_scope_fixture()
+      event = event_fixture(scope, %{template_path: "templates/old.pptx"})
+      Process.put(:storage_stub_notify, self())
+
+      assert {:ok, %Event{} = removed} = Events.remove_event_template(scope, event)
+
+      assert is_nil(removed.template_path)
+      assert_receive {:storage_request, :delete, url}
+      assert url =~ "old.pptx"
+    end
+
     test "update_event/3 with invalid scope raises" do
       scope = user_scope_fixture()
       other_scope = user_scope_fixture()
@@ -291,6 +318,18 @@ defmodule Certfy.EventsTest do
       assert participant.extra_data == %{}
       assert participant.batch_id == batch.id
       assert participant.user_id == scope.user.id
+    end
+
+    test "create_participant/3 without email creates a participant" do
+      scope = user_scope_fixture()
+      event = event_fixture(scope)
+      batch = batch_fixture(scope, event)
+
+      assert {:ok, %Participant{} = participant} =
+               Events.create_participant(scope, batch, %{name: "sem email", email: ""})
+
+      assert participant.name == "sem email"
+      assert is_nil(participant.email)
     end
 
     test "create_participant/3 with invalid data returns error changeset" do

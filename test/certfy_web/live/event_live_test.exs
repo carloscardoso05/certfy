@@ -53,6 +53,40 @@ defmodule CertfyWeb.EventLiveTest do
       assert html =~ "some name"
     end
 
+    test "saves extra data", %{conn: conn, scope: scope} do
+      {:ok, index_live, _html} = live(conn, ~p"/events")
+
+      assert {:ok, form_live, _} =
+               index_live
+               |> element("a", "Novo evento")
+               |> render_click()
+               |> follow_redirect(conn, ~p"/events/new")
+
+      form_live
+      |> element("#event-extra-data-add")
+      |> render_click()
+
+      form_live
+      |> element("#event-form")
+      |> render_change(%{
+        "event" => %{"name" => "event with extra data"},
+        "extra_data" => %{"0" => %{"key" => "sala", "value" => "A"}}
+      })
+
+      assert {:ok, _index_live, _html} =
+               form_live
+               |> form("#event-form")
+               |> render_submit()
+               |> follow_redirect(conn, ~p"/events")
+
+      event =
+        scope
+        |> Certfy.Events.list_events()
+        |> Enum.find(&(&1.name == "event with extra data"))
+
+      assert event.extra_data == %{"sala" => "A"}
+    end
+
     test "saves a template file", %{conn: conn, scope: scope} do
       {:ok, index_live, _html} = live(conn, ~p"/events")
 
@@ -159,6 +193,33 @@ defmodule CertfyWeb.EventLiveTest do
       html = render(show_live)
       assert html =~ "Evento atualizado com sucesso."
       assert html =~ "some updated name"
+    end
+
+    test "shows extra data", %{conn: conn, scope: scope} do
+      event = event_fixture(scope, %{extra_data: %{"sala" => "Auditório"}})
+
+      {:ok, _show_live, html} = live(conn, ~p"/events/#{event}")
+
+      assert html =~ "Dados adicionais"
+      assert html =~ "sala"
+      assert html =~ "Auditório"
+    end
+
+    test "shows and removes the event template", %{conn: conn, event: event, scope: scope} do
+      {:ok, show_live, html} = live(conn, ~p"/events/#{event}")
+
+      assert html =~ "Baixar template"
+      assert html =~ "Remover template"
+      assert html =~ ~p"/events/#{event}/template"
+
+      show_live
+      |> element("button", "Remover template")
+      |> render_click()
+
+      html = render(show_live)
+      assert html =~ "Template removido."
+      refute html =~ "Baixar template"
+      assert is_nil(Certfy.Events.get_event!(scope, event.id).template_path)
     end
   end
 end

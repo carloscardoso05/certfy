@@ -66,6 +66,40 @@ defmodule CertfyWeb.BatchLiveTest do
       assert html =~ "some name"
     end
 
+    test "saves extra data", %{conn: conn, scope: scope, event: event} do
+      {:ok, index_live, _html} = live(conn, ~p"/events/#{event}/batches")
+
+      assert {:ok, form_live, _} =
+               index_live
+               |> element("a", "Novo lote")
+               |> render_click()
+               |> follow_redirect(conn, ~p"/events/#{event}/batches/new")
+
+      form_live
+      |> element("#batch-extra-data-add")
+      |> render_click()
+
+      form_live
+      |> element("#batch-form")
+      |> render_change(%{
+        "batch" => %{"name" => "batch with extra data"},
+        "extra_data" => %{"0" => %{"key" => "turno", "value" => "manhã"}}
+      })
+
+      assert {:ok, _index_live, _html} =
+               form_live
+               |> form("#batch-form")
+               |> render_submit()
+               |> follow_redirect(conn, ~p"/events/#{event}/batches")
+
+      batch =
+        scope
+        |> Certfy.Events.list_batches(event)
+        |> Enum.find(&(&1.name == "batch with extra data"))
+
+      assert batch.extra_data == %{"turno" => "manhã"}
+    end
+
     test "updates batch in listing", %{conn: conn, event: event, batch: batch} do
       {:ok, index_live, _html} = live(conn, ~p"/events/#{event}/batches")
 
@@ -108,6 +142,16 @@ defmodule CertfyWeb.BatchLiveTest do
 
       assert html =~ "Lote"
       assert html =~ batch.name
+    end
+
+    test "shows extra data", %{conn: conn, scope: scope, event: event} do
+      batch = batch_fixture(scope, event, %{extra_data: %{"turno" => "Manhã"}})
+
+      {:ok, _show_live, html} = live(conn, ~p"/events/#{event}/batches/#{batch}")
+
+      assert html =~ "Dados adicionais"
+      assert html =~ "turno"
+      assert html =~ "Manhã"
     end
 
     test "updates batch and returns to show", %{conn: conn, event: event, batch: batch} do

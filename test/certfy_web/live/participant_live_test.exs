@@ -78,6 +78,64 @@ defmodule CertfyWeb.ParticipantLiveTest do
       assert html =~ "some name"
     end
 
+    test "saves a participant without email", %{conn: conn, event: event, batch: batch} do
+      {:ok, index_live, _html} = live(conn, ~p"/events/#{event}/batches/#{batch}/participants")
+
+      assert {:ok, form_live, _} =
+               index_live
+               |> element("a", "Novo participante")
+               |> render_click()
+               |> follow_redirect(
+                 conn,
+                 ~p"/events/#{event}/batches/#{batch}/participants/new"
+               )
+
+      assert {:ok, index_live, _html} =
+               form_live
+               |> form("#participant-form", participant: %{name: "sem email", email: ""})
+               |> render_submit()
+               |> follow_redirect(conn, ~p"/events/#{event}/batches/#{batch}/participants")
+
+      assert render(index_live) =~ "sem email"
+    end
+
+    test "saves extra data", %{conn: conn, scope: scope, event: event, batch: batch} do
+      {:ok, index_live, _html} = live(conn, ~p"/events/#{event}/batches/#{batch}/participants")
+
+      assert {:ok, form_live, _} =
+               index_live
+               |> element("a", "Novo participante")
+               |> render_click()
+               |> follow_redirect(
+                 conn,
+                 ~p"/events/#{event}/batches/#{batch}/participants/new"
+               )
+
+      form_live
+      |> element("#participant-extra-data-add")
+      |> render_click()
+
+      form_live
+      |> element("#participant-form")
+      |> render_change(%{
+        "participant" => %{"name" => "participant with extra data"},
+        "extra_data" => %{"0" => %{"key" => "empresa", "value" => "Certfy"}}
+      })
+
+      assert {:ok, _index_live, _html} =
+               form_live
+               |> form("#participant-form")
+               |> render_submit()
+               |> follow_redirect(conn, ~p"/events/#{event}/batches/#{batch}/participants")
+
+      participant =
+        scope
+        |> Certfy.Events.list_participants(batch)
+        |> Enum.find(&(&1.name == "participant with extra data"))
+
+      assert participant.extra_data == %{"empresa" => "Certfy"}
+    end
+
     test "updates participant in listing", %{
       conn: conn,
       event: event,
@@ -142,6 +200,22 @@ defmodule CertfyWeb.ParticipantLiveTest do
 
       assert html =~ "Participante"
       assert html =~ participant.name
+    end
+
+    test "shows extra data", %{
+      conn: conn,
+      scope: scope,
+      event: event,
+      batch: batch
+    } do
+      participant = participant_fixture(scope, batch, %{extra_data: %{"empresa" => "Certfy"}})
+
+      {:ok, _show_live, html} =
+        live(conn, ~p"/events/#{event}/batches/#{batch}/participants/#{participant}")
+
+      assert html =~ "Dados adicionais"
+      assert html =~ "empresa"
+      assert html =~ "Certfy"
     end
 
     test "updates participant and returns to show", %{

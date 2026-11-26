@@ -20,6 +20,27 @@ defmodule Certfy.Storage do
   end
 
   @doc """
+  Downloads a template file by its object key.
+  """
+  def get_template(key) when is_binary(key) do
+    case bucket() |> ExAws.S3.get_object(key) |> ExAws.request() do
+      {:ok, %{body: body}} -> {:ok, body}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Deletes a template file by its object key.
+  """
+  def delete_template(key) when is_binary(key) do
+    case bucket() |> ExAws.S3.delete_object(key) |> ExAws.request() do
+      {:ok, _response} -> :ok
+      {:error, {:http_error, 404, _response}} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
   Builds a unique and safe object key for a template file.
   """
   def template_key(filename) when is_binary(filename) do

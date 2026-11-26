@@ -34,11 +34,9 @@ defmodule CertfyWeb.BatchLive.Show do
           <div class="stat-title">Nome</div>
           <div class="stat-value text-lg">{@batch.name}</div>
         </div>
-        <div class="stat">
-          <div class="stat-title">Dados adicionais</div>
-          <div class="stat-value text-lg">{map_size(@batch.extra_data || %{})}</div>
-        </div>
       </div>
+
+      <.key_value_list id="batch-extra-data-list" data={@batch.extra_data} class="mt-6" />
     </Layouts.app>
     """
   end

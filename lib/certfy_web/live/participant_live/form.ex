@@ -3,6 +3,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
 
   alias Certfy.Events
   alias Certfy.Events.Participant
+  alias CertfyWeb.Components.KeyValue
 
   @impl true
   def render(assigns) do
@@ -24,7 +25,15 @@ defmodule CertfyWeb.ParticipantLive.Form do
               class="space-y-6"
             >
               <.input field={@form[:name]} type="text" label="Nome" required />
-              <.input field={@form[:email]} type="email" label="E-mail" required />
+              <.input field={@form[:email]} type="email" label="E-mail" />
+
+              <.key_value
+                id="participant-extra-data"
+                label="Dados adicionais"
+                rows={@extra_data_rows}
+                on_add="add_extra_data"
+                on_remove="remove_extra_data"
+              />
 
               <footer class="flex flex-wrap justify-end gap-2">
                 <.button navigate={
@@ -62,6 +71,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
     socket
     |> assign(:page_title, "Editar participante")
     |> assign(:participant, participant)
+    |> assign(:extra_data_rows, KeyValue.rows_from_map(participant.extra_data))
     |> assign(
       :form,
       to_form(Events.change_participant(socket.assigns.current_scope, participant))
@@ -74,6 +84,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
     socket
     |> assign(:page_title, "Novo participante")
     |> assign(:participant, participant)
+    |> assign(:extra_data_rows, [])
     |> assign(
       :form,
       to_form(Events.change_participant(socket.assigns.current_scope, participant))
@@ -81,7 +92,9 @@ defmodule CertfyWeb.ParticipantLive.Form do
   end
 
   @impl true
-  def handle_event("validate", %{"participant" => participant_params}, socket) do
+  def handle_event("validate", %{"participant" => participant_params} = params, socket) do
+    {participant_params, rows} = merge_extra_data(params, participant_params)
+
     changeset =
       Events.change_participant(
         socket.assigns.current_scope,
@@ -89,11 +102,31 @@ defmodule CertfyWeb.ParticipantLive.Form do
         participant_params
       )
 
-    {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
+    {:noreply, assign(socket, form: to_form(changeset, action: :validate), extra_data_rows: rows)}
   end
 
-  def handle_event("save", %{"participant" => participant_params}, socket) do
+  def handle_event("add_extra_data", _params, socket) do
+    {:noreply, assign(socket, :extra_data_rows, KeyValue.add_row(socket.assigns.extra_data_rows))}
+  end
+
+  def handle_event("remove_extra_data", %{"index" => index}, socket) do
+    {:noreply,
+     assign(
+       socket,
+       :extra_data_rows,
+       KeyValue.remove_row(socket.assigns.extra_data_rows, index)
+     )}
+  end
+
+  def handle_event("save", %{"participant" => participant_params} = params, socket) do
+    {participant_params, rows} = merge_extra_data(params, participant_params)
+    socket = assign(socket, :extra_data_rows, rows)
     save_participant(socket, socket.assigns.live_action, participant_params)
+  end
+
+  defp merge_extra_data(params, form_params) do
+    rows = KeyValue.rows_from_params(params["extra_data"])
+    {Map.put(form_params, "extra_data", KeyValue.to_map(rows)), rows}
   end
 
   defp save_participant(socket, :edit, participant_params) do

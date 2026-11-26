@@ -3,6 +3,7 @@ defmodule CertfyWeb.BatchLive.Form do
 
   alias Certfy.Events
   alias Certfy.Events.Batch
+  alias CertfyWeb.Components.KeyValue
 
   @impl true
   def render(assigns) do
@@ -24,6 +25,14 @@ defmodule CertfyWeb.BatchLive.Form do
               class="space-y-6"
             >
               <.input field={@form[:name]} type="text" label="Nome" required />
+
+              <.key_value
+                id="batch-extra-data"
+                label="Dados adicionais"
+                rows={@extra_data_rows}
+                on_add="add_extra_data"
+                on_remove="remove_extra_data"
+              />
 
               <footer class="flex flex-wrap justify-end gap-2">
                 <.button navigate={return_path(@current_scope, @event, @return_to, @batch)}>
@@ -56,6 +65,7 @@ defmodule CertfyWeb.BatchLive.Form do
     socket
     |> assign(:page_title, "Editar lote")
     |> assign(:batch, batch)
+    |> assign(:extra_data_rows, KeyValue.rows_from_map(batch.extra_data))
     |> assign(:form, to_form(Events.change_batch(socket.assigns.current_scope, batch)))
   end
 
@@ -65,19 +75,42 @@ defmodule CertfyWeb.BatchLive.Form do
     socket
     |> assign(:page_title, "Novo lote")
     |> assign(:batch, batch)
+    |> assign(:extra_data_rows, [])
     |> assign(:form, to_form(Events.change_batch(socket.assigns.current_scope, batch)))
   end
 
   @impl true
-  def handle_event("validate", %{"batch" => batch_params}, socket) do
+  def handle_event("validate", %{"batch" => batch_params} = params, socket) do
+    {batch_params, rows} = merge_extra_data(params, batch_params)
+
     changeset =
       Events.change_batch(socket.assigns.current_scope, socket.assigns.batch, batch_params)
 
-    {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
+    {:noreply, assign(socket, form: to_form(changeset, action: :validate), extra_data_rows: rows)}
   end
 
-  def handle_event("save", %{"batch" => batch_params}, socket) do
+  def handle_event("add_extra_data", _params, socket) do
+    {:noreply, assign(socket, :extra_data_rows, KeyValue.add_row(socket.assigns.extra_data_rows))}
+  end
+
+  def handle_event("remove_extra_data", %{"index" => index}, socket) do
+    {:noreply,
+     assign(
+       socket,
+       :extra_data_rows,
+       KeyValue.remove_row(socket.assigns.extra_data_rows, index)
+     )}
+  end
+
+  def handle_event("save", %{"batch" => batch_params} = params, socket) do
+    {batch_params, rows} = merge_extra_data(params, batch_params)
+    socket = assign(socket, :extra_data_rows, rows)
     save_batch(socket, socket.assigns.live_action, batch_params)
+  end
+
+  defp merge_extra_data(params, form_params) do
+    rows = KeyValue.rows_from_params(params["extra_data"])
+    {Map.put(form_params, "extra_data", KeyValue.to_map(rows)), rows}
   end
 
   defp save_batch(socket, :edit, batch_params) do

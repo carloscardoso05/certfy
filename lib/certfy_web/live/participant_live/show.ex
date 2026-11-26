@@ -34,13 +34,15 @@ defmodule CertfyWeb.ParticipantLive.Show do
         </div>
         <div class="stat">
           <div class="stat-title">E-mail</div>
-          <div class="stat-value text-base">{@participant.email}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">Dados adicionais</div>
-          <div class="stat-value text-lg">{map_size(@participant.extra_data || %{})}</div>
+          <div class="stat-value text-base">{@participant.email || "—"}</div>
         </div>
       </div>
+
+      <.key_value_list
+        id="participant-extra-data-list"
+        data={@participant.extra_data}
+        class="mt-6"
+      />
     </Layouts.app>
     """
   end
