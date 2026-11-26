@@ -20,12 +20,13 @@ defmodule CertfyWeb.UserLive.LoginTest do
 
       {:ok, lv, _html} = live(conn, ~p"/users/log-in")
 
-      {:ok, _lv, html} =
-        form(lv, "#login_form_magic", user: %{email: user.email})
+      html =
+        lv
+        |> form("#login_form_magic", user: %{email: user.email})
         |> render_submit()
-        |> follow_redirect(conn, ~p"/users/log-in")
 
-      assert html =~ "Se o seu e-mail estiver cadastrado"
+      assert html =~ "Verifique seu e-mail"
+      assert html =~ user.email
 
       assert Certfy.Repo.get_by!(Certfy.Accounts.UserToken, user_id: user.id).context ==
                "login"
@@ -34,12 +35,31 @@ defmodule CertfyWeb.UserLive.LoginTest do
     test "does not disclose if user is registered", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/users/log-in")
 
-      {:ok, _lv, html} =
-        form(lv, "#login_form_magic", user: %{email: "idonotexist@example.com"})
+      html =
+        lv
+        |> form("#login_form_magic", user: %{email: "idonotexist@example.com"})
         |> render_submit()
-        |> follow_redirect(conn, ~p"/users/log-in")
 
-      assert html =~ "Se o seu e-mail estiver cadastrado"
+      assert html =~ "Verifique seu e-mail"
+      assert html =~ "idonotexist@example.com"
+    end
+
+    test "lets the user go back to the email form", %{conn: conn} do
+      user = user_fixture()
+
+      {:ok, lv, _html} = live(conn, ~p"/users/log-in")
+
+      lv
+      |> form("#login_form_magic", user: %{email: user.email})
+      |> render_submit()
+
+      html =
+        lv
+        |> element("button", "Usar outro e-mail")
+        |> render_click()
+
+      assert html =~ "Entrar com e-mail"
+      refute html =~ "Verifique seu e-mail"
     end
   end
 

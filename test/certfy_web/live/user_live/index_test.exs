@@ -88,6 +88,50 @@ defmodule CertfyWeb.UserLive.IndexTest do
 
       assert Accounts.get_user!(other.id).role == :ADMIN
     end
+
+    test "filters users by name", %{conn: conn, user: admin} do
+      other = user_fixture(%{name: "Alvo Especial"})
+
+      {:ok, lv, _html} = live(conn, ~p"/users")
+
+      lv
+      |> form("#user-filters", %{"q" => "Alvo Especial"})
+      |> render_change()
+
+      assert has_element?(lv, "#users-#{other.id}")
+      refute has_element?(lv, "#users-#{admin.id}")
+    end
+
+    test "resends a pending invitation", %{conn: conn, user: admin} do
+      %{invitation: invitation} = invitation_fixture(Accounts.Scope.for_user(admin))
+
+      {:ok, lv, _html} = live(conn, ~p"/users")
+
+      html =
+        lv
+        |> element("#invitations-#{invitation.id} button", "Reenviar")
+        |> render_click()
+
+      assert html =~ "Convite reenviado"
+
+      pending = Admin.list_pending_invitations(Accounts.Scope.for_user(admin))
+      assert length(pending) == 1
+      refute Enum.any?(pending, &(&1.id == invitation.id))
+    end
+
+    test "revokes a pending invitation", %{conn: conn, user: admin} do
+      %{invitation: invitation} = invitation_fixture(Accounts.Scope.for_user(admin))
+
+      {:ok, lv, _html} = live(conn, ~p"/users")
+
+      html =
+        lv
+        |> element("#invitations-#{invitation.id} button", "Revogar")
+        |> render_click()
+
+      assert html =~ "Convite revogado."
+      assert Admin.list_pending_invitations(Accounts.Scope.for_user(admin)) == []
+    end
   end
 
   describe "as a regular user" do

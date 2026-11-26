@@ -10,27 +10,31 @@ defmodule CertfyWeb.Components.KeyValue do
   use Phoenix.Component
 
   attr :id, :string, required: true
-  attr :label, :string, default: "Dados adicionais"
   attr :rows, :list, default: []
   attr :name_prefix, :string, default: "extra_data"
   attr :on_add, :string, required: true
   attr :on_remove, :string, required: true
+  attr :on_move, :string, required: true
 
   def key_value(assigns) do
+    duplicate_keys =
+      assigns.rows
+      |> Enum.map(&String.trim(&1.key))
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.frequencies()
+      |> Enum.filter(fn {_key, count} -> count > 1 end)
+      |> Enum.map(fn {key, _count} -> key end)
+      |> Enum.sort()
+
+    assigns = assign(assigns, :duplicate_keys, duplicate_keys)
+
     ~H"""
     <section id={@id} class="space-y-2">
-      <div class="flex items-start justify-between gap-2">
-        <div>
-          <h2 class="text-sm font-semibold text-base-content/70">{@label}</h2>
-          <p class="text-xs text-base-content/60">
-            Pares de chave e valor. Chaves vazias são ignoradas.
-          </p>
-        </div>
-
+      <div class="flex justify-end">
         <button
           type="button"
           id={"#{@id}-add"}
-          class="btn btn-ghost btn-xs"
+          class="btn btn-soft btn-sm"
           phx-click={@on_add}
         >
           <span class="hero-plus size-4" /> Adicionar
@@ -43,6 +47,10 @@ defmodule CertfyWeb.Components.KeyValue do
       >
         Nenhum dado adicional.
       </div>
+
+      <p :if={@duplicate_keys != []} class="text-sm text-warning">
+        Chaves duplicadas: {Enum.join(@duplicate_keys, ", ")}. O último valor será mantido.
+      </p>
 
       <div :for={row <- @rows} id={"#{@id}-row-#{row.index}"} class="flex items-start gap-2">
         <input
@@ -71,13 +79,38 @@ defmodule CertfyWeb.Components.KeyValue do
         >
           <span class="hero-trash size-4" />
         </button>
+
+        <div class="join join-vertical">
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs join-item"
+            phx-click={@on_move}
+            phx-value-index={row.index}
+            phx-value-direction="up"
+            disabled={row.index == 0}
+            aria-label="Mover para cima"
+          >
+            <span class="hero-chevron-up size-3" />
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs join-item"
+            phx-click={@on_move}
+            phx-value-index={row.index}
+            phx-value-direction="down"
+            disabled={row.index == length(@rows) - 1}
+            aria-label="Mover para baixo"
+          >
+            <span class="hero-chevron-down size-3" />
+          </button>
+        </div>
       </div>
     </section>
     """
   end
 
   attr :id, :string, required: true
-  attr :label, :string, default: "Dados adicionais"
   attr :data, :map, default: %{}
   attr :class, :any, default: nil
 
@@ -91,33 +124,31 @@ defmodule CertfyWeb.Components.KeyValue do
     assigns = assign(assigns, :entries, entries)
 
     ~H"""
-    <section id={@id} class={["card bg-base-100 shadow-sm", @class]}>
-      <div class="card-body">
-        <div class="flex items-center justify-between gap-3">
-          <h2 class="card-title text-base">{@label}</h2>
-          <span :if={@entries != []} class="badge badge-ghost badge-sm">
-            {length(@entries)} {if length(@entries) == 1, do: "item", else: "itens"}
-          </span>
-        </div>
+    <div id={@id} class={@class}>
+      <p
+        :if={@entries == []}
+        class="rounded-box border border-dashed border-base-300 p-4 text-center text-base text-base-content/70"
+      >
+        Nenhum dado adicional.
+      </p>
 
-        <p
-          :if={@entries == []}
-          class="rounded-box border border-dashed border-base-300 p-4 text-center text-sm text-base-content/60"
-        >
-          Nenhum dado adicional.
+      <div :if={@entries != []}>
+        <p class="mb-2 text-sm text-base-content/60">
+          {length(@entries)} {if length(@entries) == 1, do: "item", else: "itens"}
         </p>
 
-        <dl :if={@entries != []} class="divide-y divide-base-200">
+        <dl class="divide-y divide-base-200">
           <div
             :for={entry <- @entries}
-            class="grid grid-cols-1 gap-1 py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-4"
+            class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-4"
           >
-            <dt class="text-sm break-words text-base-content/60">{entry.key}</dt>
-            <dd class="text-sm font-medium whitespace-pre-wrap break-words">{entry.value}</dd>
+            <dt class="text-sm break-words text-base-content/70">{entry.key}</dt>
+
+            <dd class="text-base font-medium whitespace-pre-wrap break-words">{entry.value}</dd>
           </div>
         </dl>
       </div>
-    </section>
+    </div>
     """
   end
 
@@ -176,6 +207,29 @@ defmodule CertfyWeb.Components.KeyValue do
         |> Enum.reject(&(&1.index == index))
         |> Enum.with_index()
         |> Enum.map(fn {row, new_index} -> %{row | index: new_index} end)
+    end
+  end
+
+  @doc "Moves a row up or down and reindexes the list."
+  def move_row(rows, index, direction) do
+    with index when is_integer(index) <- parse_index(index),
+         true <- index >= 0 and index < length(rows) do
+      target = if direction == "up", do: index - 1, else: index + 1
+
+      if target < 0 or target >= length(rows) do
+        rows
+      else
+        row = Enum.at(rows, index)
+        other = Enum.at(rows, target)
+
+        rows
+        |> List.replace_at(index, other)
+        |> List.replace_at(target, row)
+        |> Enum.with_index()
+        |> Enum.map(fn {row, new_index} -> %{row | index: new_index} end)
+      end
+    else
+      _ -> rows
     end
   end
 

@@ -21,10 +21,12 @@ defmodule CertfyWeb.UserLive.Settings do
             <div class="flex items-start justify-between gap-4">
               <div>
                 <h2 class="card-title text-base">Perfil</h2>
+
                 <p class="text-sm text-base-content/70">
                   Seu nome aparece na barra de navegação.
                 </p>
               </div>
+
               <span class={role_badge(@current_scope.user.role)}>
                 {role_label(@current_scope.user.role)}
               </span>
@@ -43,11 +45,10 @@ defmodule CertfyWeb.UserLive.Settings do
                 label="Nome"
                 autocomplete="name"
                 required
-              />
-              <.button variant="primary" phx-disable-with="Salvando...">Salvar nome</.button>
+              /> <.button variant="primary" phx-disable-with="Salvando...">Salvar nome</.button>
             </.form>
 
-            <p class="mt-2 text-xs text-base-content/60">
+            <p class="mt-2 text-sm text-base-content/70">
               E-mail: {@current_scope.user.email}
             </p>
           </div>
@@ -56,6 +57,7 @@ defmodule CertfyWeb.UserLive.Settings do
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body">
             <h2 class="card-title text-base">E-mail</h2>
+
             <p class="text-sm text-base-content/70">
               Alterar o e-mail exige confirmação no novo endereço.
             </p>
@@ -74,8 +76,7 @@ defmodule CertfyWeb.UserLive.Settings do
                 autocomplete="username"
                 spellcheck="false"
                 required
-              />
-              <.button variant="primary" phx-disable-with="Alterando...">Alterar e-mail</.button>
+              /> <.button variant="primary" phx-disable-with="Alterando...">Alterar e-mail</.button>
             </.form>
           </div>
         </div>

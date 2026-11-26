@@ -6,10 +6,11 @@ defmodule CertfyWeb.EventLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} nav={:events}>
       <.header>
         Eventos
         <:subtitle>Gerencie os eventos e seus lotes de certificados.</:subtitle>
+
         <:actions>
           <.button variant="primary" navigate={~p"/events/new"}>
             <.icon name="hero-plus" /> Novo evento
@@ -17,47 +18,146 @@ defmodule CertfyWeb.EventLive.Index do
         </:actions>
       </.header>
 
-      <div class="card bg-base-100 shadow-sm">
-        <div class="card-body p-0">
-          <div class="overflow-x-auto">
-            <.table
-              id="events"
-              rows={@streams.events}
-              row_click={fn {_id, event} -> JS.navigate(~p"/events/#{event}") end}
+      <.form for={@filter_form} id="event-filters" phx-change="filter" class="mb-4">
+        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_13rem_13rem] md:items-end">
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium">Buscar</span>
+            <span class="input input-bordered flex w-full items-center gap-2">
+              <.icon name="hero-magnifying-glass" class="size-4 opacity-60" />
+              <input
+                type="search"
+                name="q"
+                value={@filters["q"]}
+                placeholder="Nome do evento"
+                class="grow"
+                phx-debounce="300"
+              />
+            </span>
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium">Template</span>
+            <select name="template" class="select select-bordered w-full">
+              <option value="all" selected={@filters["template"] == "all"}>Todos</option>
+
+              <option value="yes" selected={@filters["template"] == "yes"}>Com template</option>
+
+              <option value="no" selected={@filters["template"] == "no"}>Sem template</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium">Ordenar por</span>
+            <select name="sort" class="select select-bordered w-full">
+              <option value="updated" selected={@filters["sort"] == "updated"}>
+                Mais recentes
+              </option>
+
+              <option value="name" selected={@filters["sort"] == "name"}>Nome (A–Z)</option>
+            </select>
+          </label>
+        </div>
+      </.form>
+
+      <div :if={@empty?}>
+        <.empty_state
+          title={if @has_filters?, do: "Nenhum evento encontrado", else: "Nenhum evento ainda"}
+          description={
+            if @has_filters?,
+              do: "Ajuste a busca ou os filtros para encontrar o que procura.",
+              else: "Crie o primeiro evento para começar a organizar lotes e participantes."
+          }
+        >
+          <:action>
+            <.link
+              :if={@has_filters?}
+              patch={~p"/events"}
+              class="btn btn-ghost btn-sm"
             >
-              <:col :let={{_id, event}} label="Nome">
-                <span class="font-medium">{event.name}</span>
-              </:col>
-              <:col :let={{_id, event}} label="Tem template?">
-                <span class={template_badge(event)}>
-                  {if event.template_path, do: "Sim", else: "Não"}
-                </span>
-              </:col>
-              <:col :let={{_id, event}} label="Dados adicionais">
-                <span class="badge badge-ghost badge-sm">{map_size(event.extra_data || %{})}</span>
-              </:col>
-              <:action :let={{_id, event}}>
-                <div class="sr-only">
-                  <.link navigate={~p"/events/#{event}"}>Ver</.link>
-                </div>
-                <.link
-                  navigate={~p"/events/#{event}/edit"}
-                  class="btn btn-ghost btn-xs"
-                >
-                  Editar
-                </.link>
-              </:action>
-              <:action :let={{id, event}}>
-                <.link
-                  phx-click={JS.push("delete", value: %{id: event.id}) |> hide("##{id}")}
-                  data-confirm="Tem certeza?"
-                  class="btn btn-ghost btn-xs text-error"
-                >
-                  Excluir
-                </.link>
-              </:action>
-            </.table>
+              Limpar filtros
+            </.link>
+
+            <.button :if={!@has_filters?} variant="primary" navigate={~p"/events/new"}>
+              <.icon name="hero-plus" /> Novo evento
+            </.button>
+          </:action>
+        </.empty_state>
+      </div>
+
+      <div :if={!@empty?} class="overflow-hidden rounded-box border border-base-300 bg-base-100">
+        <div class="hidden grid-cols-[minmax(0,1fr)_8rem_8rem_13rem] gap-4 border-b border-base-300 px-4 py-3 text-sm font-medium text-base-content/70 md:grid">
+          <span>Nome</span> <span>Template</span> <span>Dados adicionais</span>
+          <span class="text-right">Ações</span>
+        </div>
+
+        <div id="events" phx-update="stream">
+          <div
+            :for={{id, event} <- @streams.events}
+            id={id}
+            class="relative grid grid-cols-1 gap-2 border-b border-base-300 px-4 py-4 last:border-0 hover:bg-base-200/60 md:grid-cols-[minmax(0,1fr)_8rem_8rem_13rem] md:items-center md:gap-4"
+          >
+            <.link
+              navigate={~p"/events/#{event}"}
+              class="absolute inset-0 z-0 rounded-box focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              aria-label={"Abrir #{event.name}"}
+            ></.link>
+            <div class="min-w-0">
+              <p class="truncate text-base font-medium">{event.name}</p>
+            </div>
+
+            <div>
+              <span class={template_badge(event)}>
+                {if event.template_path, do: "Sim", else: "Não"}
+              </span>
+            </div>
+
+            <div class="text-sm text-base-content/70 tabular-nums">
+              {map_size(event.extra_data || %{})}
+            </div>
+
+            <div class="relative z-10 flex flex-wrap justify-end gap-2">
+              <.link navigate={~p"/events/#{event}/edit"} class="btn btn-soft">
+                Editar
+              </.link>
+
+              <button
+                type="button"
+                class="btn btn-soft btn-error"
+                phx-click={JS.push("delete", value: %{id: event.id})}
+                data-confirm="Tem certeza que deseja excluir este evento?"
+              >
+                Excluir
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <div :if={!@empty?} class="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm text-base-content/60">
+          {count_label(@page_info.total)} · página {@page_info.page} de {@page_info.pages}
+        </p>
+
+        <div class="join">
+          <%= if @page_info.page > 1 do %>
+            <.link patch={page_path(@filters, @page_info.page - 1)} class="btn btn-sm join-item">
+              Anterior
+            </.link>
+          <% else %>
+            <button type="button" class="btn btn-sm join-item btn-disabled" disabled>
+              Anterior
+            </button>
+          <% end %>
+
+          <%= if @page_info.page < @page_info.pages do %>
+            <.link patch={page_path(@filters, @page_info.page + 1)} class="btn btn-sm join-item">
+              Próxima
+            </.link>
+          <% else %>
+            <button type="button" class="btn btn-sm join-item btn-disabled" disabled>
+              Próxima
+            </button>
+          <% end %>
         </div>
       </div>
     </Layouts.app>
@@ -73,26 +173,78 @@ defmodule CertfyWeb.EventLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "Eventos")
-     |> stream(:events, list_events(socket.assigns.current_scope))}
+     |> assign(:filters, %{"q" => "", "template" => "all", "sort" => "updated", "page" => 1})
+     |> assign(:filter_form, to_form(%{"q" => "", "template" => "all", "sort" => "updated"}))
+     |> assign(:page_info, %{items: [], total: 0, page: 1, pages: 1})
+     |> assign(:empty?, true)
+     |> assign(:has_filters?, false)}
   end
 
   @impl true
+  def handle_params(params, _uri, socket) do
+    {:noreply, load(socket, params)}
+  end
+
+  @impl true
+  def handle_event("filter", params, socket) do
+    {:noreply, push_patch(socket, to: list_path(params))}
+  end
+
   def handle_event("delete", %{"id" => id}, socket) do
     event = Events.get_event!(socket.assigns.current_scope, id)
-    {:ok, _} = Events.delete_event(socket.assigns.current_scope, event)
+    {:ok, _event} = Events.delete_event(socket.assigns.current_scope, event)
 
-    {:noreply, stream_delete(socket, :events, event)}
+    {:noreply, load(socket, socket.assigns.filters)}
   end
 
   @impl true
   def handle_info({type, %Certfy.Events.Event{}}, socket)
       when type in [:created, :updated, :deleted] do
-    {:noreply, stream(socket, :events, list_events(socket.assigns.current_scope), reset: true)}
+    {:noreply, load(socket, socket.assigns.filters)}
   end
 
-  defp list_events(current_scope) do
-    Events.list_events(current_scope)
+  defp load(socket, params) do
+    result = Events.list_events_page(socket.assigns.current_scope, params)
+
+    filters = %{
+      "q" => params["q"] || "",
+      "template" => params["template"] || "all",
+      "sort" => params["sort"] || "updated",
+      "page" => result.page
+    }
+
+    socket
+    |> assign(:filters, filters)
+    |> assign(:filter_form, to_form(Map.take(filters, ["q", "template", "sort"])))
+    |> assign(:page_info, result)
+    |> assign(:empty?, result.items == [])
+    |> assign(:has_filters?, filters["q"] != "" or filters["template"] != "all")
+    |> stream(:events, result.items, reset: true)
   end
+
+  defp list_path(params) do
+    query =
+      params
+      |> Map.take(["q", "template", "sort"])
+      |> Enum.reject(fn {_key, value} -> value in [nil, "", "all"] end)
+      |> Map.new()
+
+    if query == %{}, do: ~p"/events", else: ~p"/events" <> "?#{URI.encode_query(query)}"
+  end
+
+  defp page_path(filters, page) do
+    query =
+      filters
+      |> Map.take(["q", "template", "sort"])
+      |> Map.put("page", page)
+      |> Enum.reject(fn {_key, value} -> value in [nil, "", "all"] end)
+      |> Map.new()
+
+    ~p"/events" <> "?#{URI.encode_query(query)}"
+  end
+
+  defp count_label(1), do: "1 evento"
+  defp count_label(total), do: "#{total} eventos"
 
   defp template_badge(%{template_path: nil}), do: "badge badge-ghost badge-sm"
   defp template_badge(_event), do: "badge badge-success badge-sm"

@@ -20,6 +20,37 @@ defmodule Certfy.EventsTest do
       assert Events.list_events(other_scope) == [other_event]
     end
 
+    test "list_events_page/2 filters, sorts and paginates" do
+      scope = user_scope_fixture()
+
+      with_template =
+        event_fixture(scope, %{name: "Com template", template_path: "templates/a.pptx"})
+
+      without_template = event_fixture(scope, %{name: "Sem template", template_path: nil})
+
+      assert %{total: 2, items: items} = Events.list_events_page(scope, %{})
+      assert length(items) == 2
+
+      assert %{items: [found]} = Events.list_events_page(scope, %{"q" => "Com template"})
+      assert found.id == with_template.id
+
+      assert %{items: [found]} = Events.list_events_page(scope, %{"template" => "no"})
+      assert found.id == without_template.id
+
+      for i <- 1..26 do
+        event_fixture(scope, %{name: "Evento #{String.pad_leading(to_string(i), 2, "0")}"})
+      end
+
+      page1 = Events.list_events_page(scope, %{})
+      assert page1.total == 28
+      assert length(page1.items) == 25
+      assert page1.pages == 2
+
+      page2 = Events.list_events_page(scope, %{"page" => "2"})
+      assert page2.page == 2
+      assert length(page2.items) == 3
+    end
+
     test "get_event!/2 returns the event with given id" do
       scope = user_scope_fixture()
       event = event_fixture(scope)
@@ -154,6 +185,22 @@ defmodule Certfy.EventsTest do
       assert Events.list_batches(scope, other_event) == [other_batch]
     end
 
+    test "list_batches_page/2 filters by event" do
+      scope = user_scope_fixture()
+      event = event_fixture(scope)
+      other_event = event_fixture(scope)
+      batch = batch_fixture(scope, event)
+      other_batch = batch_fixture(scope, other_event)
+
+      assert %{total: 2} = Events.list_batches_page(scope, %{})
+
+      assert %{items: [found]} =
+               Events.list_batches_page(scope, %{"event_id" => event.id})
+
+      assert found.id == batch.id
+      refute found.id == other_batch.id
+    end
+
     test "get_batch!/2 returns the batch with given id" do
       scope = user_scope_fixture()
       batch = batch_fixture(scope)
@@ -277,6 +324,64 @@ defmodule Certfy.EventsTest do
 
       assert Events.list_participants(scope, batch) == [participant]
       assert Events.list_participants(scope, other_batch) == [other_participant]
+    end
+
+    test "list_participants_page/3 filters and paginates" do
+      scope = user_scope_fixture()
+      event = event_fixture(scope)
+      batch = batch_fixture(scope, event)
+      with_email = participant_fixture(scope, batch, %{name: "Maria", email: "maria@example.com"})
+      no_email = participant_fixture(scope, batch, %{name: "João", email: nil})
+
+      assert %{total: 2} = Events.list_participants_page(scope, batch, %{})
+
+      assert %{items: [found]} =
+               Events.list_participants_page(scope, batch, %{"q" => "maria"})
+
+      assert found.id == with_email.id
+
+      assert %{items: [found]} =
+               Events.list_participants_page(scope, batch, %{"email" => "without"})
+
+      assert found.id == no_email.id
+
+      for i <- 1..26 do
+        participant_fixture(scope, batch, %{
+          name: "Pessoa #{String.pad_leading(to_string(i), 2, "0")}"
+        })
+      end
+
+      page1 = Events.list_participants_page(scope, batch, %{})
+      assert page1.total == 28
+      assert length(page1.items) == 25
+      assert page1.pages == 2
+
+      page2 = Events.list_participants_page(scope, batch, %{"page" => "2"})
+      assert page2.page == 2
+      assert length(page2.items) == 3
+    end
+
+    test "list_participants_page_all/2 filters by event and batch" do
+      scope = user_scope_fixture()
+      event = event_fixture(scope)
+      batch = batch_fixture(scope, event)
+      other_event = event_fixture(scope)
+      other_batch = batch_fixture(scope, other_event)
+      participant = participant_fixture(scope, batch)
+      other_participant = participant_fixture(scope, other_batch)
+
+      assert %{total: 2} = Events.list_participants_page_all(scope, %{})
+
+      assert %{items: [found]} =
+               Events.list_participants_page_all(scope, %{"event_id" => event.id})
+
+      assert found.id == participant.id
+      refute found.id == other_participant.id
+
+      assert %{items: [found]} =
+               Events.list_participants_page_all(scope, %{"batch_id" => other_batch.id})
+
+      assert found.id == other_participant.id
     end
 
     test "get_participant!/2 returns the participant with given id" do

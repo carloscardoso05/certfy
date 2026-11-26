@@ -13,7 +13,8 @@ defmodule CertfyWeb.Components.KeyValueTest do
         id: "extra",
         rows: rows,
         on_add: "add_extra",
-        on_remove: "remove_extra"
+        on_remove: "remove_extra",
+        on_move: "move_extra"
       )
 
     assert html =~ ~s(name="extra_data[0][key]")
@@ -24,6 +25,24 @@ defmodule CertfyWeb.Components.KeyValueTest do
     assert html =~ "extra-remove-0"
   end
 
+  test "warns about duplicate keys" do
+    rows = [
+      %{index: 0, key: "sala", value: "A"},
+      %{index: 1, key: "sala", value: "B"}
+    ]
+
+    html =
+      render_component(&KeyValue.key_value/1,
+        id: "extra",
+        rows: rows,
+        on_add: "add_extra",
+        on_remove: "remove_extra",
+        on_move: "move_extra"
+      )
+
+    assert html =~ "Chaves duplicadas: sala"
+  end
+
   test "key_value_list/1 renders pairs and the empty state" do
     html =
       render_component(&KeyValue.key_value_list/1,
@@ -31,7 +50,6 @@ defmodule CertfyWeb.Components.KeyValueTest do
         data: %{"sala" => "Auditório"}
       )
 
-    assert html =~ "Dados adicionais"
     assert html =~ "sala"
     assert html =~ "Auditório"
     assert html =~ "1 item"
@@ -87,5 +105,22 @@ defmodule CertfyWeb.Components.KeyValueTest do
 
     rows = KeyValue.remove_row(rows, "1")
     assert rows == [%{index: 0, key: "", value: ""}, %{index: 1, key: "", value: ""}]
+  end
+
+  test "move_row/3 swaps and reindexes rows" do
+    rows = [
+      %{index: 0, key: "a", value: "1"},
+      %{index: 1, key: "b", value: "2"},
+      %{index: 2, key: "c", value: "3"}
+    ]
+
+    assert KeyValue.move_row(rows, "2", "up") == [
+             %{index: 0, key: "a", value: "1"},
+             %{index: 1, key: "c", value: "3"},
+             %{index: 2, key: "b", value: "2"}
+           ]
+
+    assert KeyValue.move_row(rows, "0", "up") == rows
+    assert KeyValue.move_row(rows, "2", "down") == rows
   end
 end

@@ -8,6 +8,7 @@ defmodule Certfy.Events.Batch do
     field :name, :string
     field :extra_data, :map, default: %{}
     field :user_id, :id
+    field :participants_count, :integer, virtual: true
 
     belongs_to :event, Event
     has_many :participants, Participant

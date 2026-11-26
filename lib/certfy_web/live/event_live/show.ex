@@ -6,36 +6,18 @@ defmodule CertfyWeb.EventLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} nav={:events}>
+      <.breadcrumb items={[
+        %{label: "Eventos", navigate: ~p"/events"},
+        %{label: @event.name}
+      ]} />
       <.header>
-        Evento {@event.id}
-        <:subtitle>Detalhes do evento e acesso aos lotes.</:subtitle>
+        {@event.name}
+        <:subtitle>Evento #{@event.id} · gerencie lotes e participantes.</:subtitle>
 
         <:actions>
-          <.button navigate={~p"/events"}>
+          <.button navigate={~p"/events"} aria-label="Voltar para eventos" variant="ghost">
             <.icon name="hero-arrow-left" />
-          </.button>
-
-          <.button navigate={~p"/events/#{@event}/batches"}>
-            <.icon name="hero-rectangle-stack" /> Lotes
-          </.button>
-
-          <.button
-            :if={@event.template_path}
-            href={~p"/events/#{@event}/template"}
-            download
-            class="btn btn-ghost"
-          >
-            <.icon name="hero-arrow-down-tray" /> Baixar template
-          </.button>
-
-          <.button
-            :if={@event.template_path}
-            phx-click="remove_template"
-            data-confirm="Remover o template deste evento?"
-            class="btn btn-ghost text-error"
-          >
-            <.icon name="hero-trash" /> Remover template
           </.button>
 
           <.button variant="primary" navigate={~p"/events/#{@event}/edit?return_to=show"}>
@@ -44,24 +26,83 @@ defmodule CertfyWeb.EventLive.Show do
         </:actions>
       </.header>
 
-      <div class="stats stats-vertical w-full border border-base-300 bg-base-100 shadow-sm lg:stats-horizontal">
-        <div class="stat">
-          <div class="stat-title">Nome</div>
-          <div class="stat-value text-lg">{@event.name}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">Tem template?</div>
-          <div class="stat-value text-lg">
-            {if @event.template_path, do: "Sim", else: "Não"}
-          </div>
-        </div>
-      </div>
+      <.sheet>
+        <.section title="Informações">
+          <dl class="grid gap-4 sm:grid-cols-3">
+            <div>
+              <dt class="text-sm text-base-content/60">Nome</dt>
 
-      <.key_value_list
-        id="event-extra-data-list"
-        data={@event.extra_data}
-        class="mt-6"
-      />
+              <dd class="mt-1 text-base font-medium">{@event.name}</dd>
+            </div>
+
+            <div>
+              <dt class="text-sm text-base-content/60">Template</dt>
+
+              <dd class="mt-1 text-base font-medium">
+                {if @event.template_path, do: "Sim", else: "Não"}
+              </dd>
+            </div>
+
+            <div>
+              <dt class="text-sm text-base-content/60">Atualizado em</dt>
+
+              <dd class="mt-1 text-base">
+                {Calendar.strftime(@event.updated_at, "%d/%m/%Y às %H:%M")}
+              </dd>
+            </div>
+          </dl>
+        </.section>
+
+        <.section
+          title="Template"
+          description="Arquivo .pptx usado para gerar os certificados deste evento."
+        >
+          <p class="text-base text-base-content/70">
+            {if @event.template_path,
+              do: "Há um template anexado a este evento.",
+              else: "Nenhum template anexado."}
+          </p>
+
+          <div class="mt-4 flex flex-wrap gap-2">
+            <.button
+              :if={@event.template_path}
+              href={~p"/events/#{@event}/template"}
+              download
+              variant="soft"
+            >
+              <.icon name="hero-arrow-down-tray" /> Baixar
+            </.button>
+
+            <.button
+              :if={@event.template_path}
+              phx-click="remove_template"
+              data-confirm="Remover o template deste evento?"
+              variant="danger"
+            >
+              <.icon name="hero-trash" /> Remover
+            </.button>
+
+            <.button navigate={~p"/events/#{@event}/edit?return_to=show"} variant="soft">
+              <.icon name="hero-arrow-up-tray" /> {if @event.template_path,
+                do: "Substituir",
+                else: "Enviar"}
+            </.button>
+          </div>
+        </.section>
+
+        <.section title="Dados adicionais">
+          <.key_value_list id="event-extra-data-list" data={@event.extra_data} />
+        </.section>
+
+        <.section
+          title="Lotes"
+          description={"#{batch_count_label(@batch_count)} neste evento."}
+        >
+          <.button navigate={~p"/batches?event_id=#{@event.id}"} variant="soft">
+            <.icon name="hero-rectangle-stack" /> Abrir lotes
+          </.button>
+        </.section>
+      </.sheet>
     </Layouts.app>
     """
   end
@@ -72,10 +113,13 @@ defmodule CertfyWeb.EventLive.Show do
       Events.subscribe_events(socket.assigns.current_scope)
     end
 
+    event = Events.get_event!(socket.assigns.current_scope, id)
+
     {:ok,
      socket
      |> assign(:page_title, "Evento")
-     |> assign(:event, Events.get_event!(socket.assigns.current_scope, id))}
+     |> assign(:event, event)
+     |> assign(:batch_count, Events.count_batches(socket.assigns.current_scope, event))}
   end
 
   @impl true
@@ -114,4 +158,7 @@ defmodule CertfyWeb.EventLive.Show do
       when type in [:created, :updated, :deleted] do
     {:noreply, socket}
   end
+
+  defp batch_count_label(1), do: "1 lote"
+  defp batch_count_label(total), do: "#{total} lotes"
 end

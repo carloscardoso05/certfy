@@ -13,79 +13,120 @@ defmodule CertfyWeb.EventLive.Form do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} nav={:events}>
+      <.breadcrumb items={
+        if @live_action == :new do
+          [
+            %{label: "Eventos", navigate: ~p"/events"},
+            %{label: "Novo evento"}
+          ]
+        else
+          [
+            %{label: "Eventos", navigate: ~p"/events"},
+            %{label: @event.name, navigate: ~p"/events/#{@event}"},
+            %{label: "Editar evento"}
+          ]
+        end
+      } />
       <.header>
         {@page_title}
         <:subtitle>Preencha os dados do evento e, se quiser, envie o template.</:subtitle>
       </.header>
 
       <div class="mx-auto w-full max-w-2xl">
-        <div class="card bg-base-100 shadow-sm">
-          <div class="card-body">
-            <.form
-              for={@form}
-              id="event-form"
-              phx-change="validate"
-              phx-submit="save"
-              phx-drop-target={@uploads.template.ref}
-              class="space-y-6"
-            >
-              <section>
-                <h2 class="mb-2 text-sm font-semibold text-base-content/70">
-                  Informações do evento
-                </h2>
-                <.input field={@form[:name]} type="text" label="Nome" required />
-              </section>
+        <.form
+          for={@form}
+          id="event-form"
+          phx-change="validate"
+          phx-submit="save"
+          phx-drop-target={@uploads.template.ref}
+          phx-hook="UnsavedChanges"
+        >
+          <.sheet>
+            <.section title="Informações do evento">
+              <.input field={@form[:name]} type="text" label="Nome" required />
+            </.section>
 
+            <.section
+              title="Dados adicionais"
+              description="Pares de chave e valor. Chaves vazias são ignoradas."
+            >
               <.key_value
                 id="event-extra-data"
-                label="Dados adicionais"
                 rows={@extra_data_rows}
                 on_add="add_extra_data"
                 on_remove="remove_extra_data"
+                on_move="move_extra_data"
               />
+            </.section>
 
-              <section class="rounded-box border border-dashed border-base-300 p-4">
-                <label class="label" for={@uploads.template.ref}>
-                  {if @event.template_path,
-                    do: "Substituir template (.pptx)",
-                    else: "Arquivo de template (.pptx)"}
-                </label>
-                <.live_file_input
-                  upload={@uploads.template}
-                  class="file-input file-input-bordered w-full"
-                />
-                <p :if={@event.template_path} class="mt-2 text-sm text-base-content/70">
-                  Template já enviado.
-                </p>
+            <.section
+              title="Template"
+              description="Arquivo .pptx usado para gerar os certificados. Envie outro para substituir."
+            >
+              <label class="label" for={@uploads.template.ref}>
+                {if @event.template_path,
+                  do: "Substituir template (.pptx)",
+                  else: "Arquivo de template (.pptx)"}
+              </label>
 
-                <p :for={error <- upload_errors(@uploads.template)} class="mt-2 text-sm text-error">
+              <p class="mb-2 text-sm text-base-content/70">
+                Arraste o arquivo aqui ou selecione. Apenas .pptx, até 10 MB.
+              </p>
+
+              <.live_file_input
+                upload={@uploads.template}
+                class="file-input file-input-bordered w-full"
+              />
+              <p :if={@event.template_path} class="mt-2 text-sm text-base-content/70">
+                Template já enviado. Envie outro arquivo para substituir.
+              </p>
+
+              <p :for={error <- upload_errors(@uploads.template)} class="mt-2 text-sm text-error">
+                {upload_error_to_string(error)}
+              </p>
+
+              <div :for={entry <- @uploads.template.entries} class="mt-3 space-y-1">
+                <div class="flex items-center justify-between gap-2 text-base">
+                  <span class="truncate">{entry.client_name}</span>
+                  <button
+                    type="button"
+                    class="btn btn-soft btn-error btn-sm"
+                    phx-click="cancel_upload"
+                    phx-value-ref={entry.ref}
+                  >
+                    Remover
+                  </button>
+                </div>
+
+                <progress
+                  class="progress progress-primary w-full"
+                  value={entry.progress}
+                  max="100"
+                >
+                  {entry.progress}%
+                </progress>
+
+                <p
+                  :for={error <- upload_errors(@uploads.template, entry)}
+                  class="text-sm text-error"
+                >
                   {upload_error_to_string(error)}
                 </p>
+              </div>
+            </.section>
 
-                <div :for={entry <- @uploads.template.entries}>
-                  <p class="mt-2 text-sm">{entry.client_name} ({entry.progress}%)</p>
+            <footer class="flex flex-wrap justify-end gap-2 bg-base-200/50 px-5 py-4 sm:px-6">
+              <.button navigate={return_path(@current_scope, @return_to, @event)} variant="soft">
+                Cancelar
+              </.button>
 
-                  <p
-                    :for={error <- upload_errors(@uploads.template, entry)}
-                    class="mt-2 text-sm text-error"
-                  >
-                    {upload_error_to_string(error)}
-                  </p>
-                </div>
-              </section>
-
-              <footer class="flex flex-wrap justify-end gap-2">
-                <.button navigate={return_path(@current_scope, @return_to, @event)}>
-                  Cancelar
-                </.button>
-                <.button phx-disable-with="Salvando..." variant="primary">
-                  Salvar evento
-                </.button>
-              </footer>
-            </.form>
-          </div>
-        </div>
+              <.button phx-disable-with="Salvando..." variant="primary">
+                Salvar evento
+              </.button>
+            </footer>
+          </.sheet>
+        </.form>
       </div>
     </Layouts.app>
     """
@@ -148,6 +189,19 @@ defmodule CertfyWeb.EventLive.Form do
        :extra_data_rows,
        KeyValue.remove_row(socket.assigns.extra_data_rows, index)
      )}
+  end
+
+  def handle_event("move_extra_data", %{"index" => index, "direction" => direction}, socket) do
+    {:noreply,
+     assign(
+       socket,
+       :extra_data_rows,
+       KeyValue.move_row(socket.assigns.extra_data_rows, index, direction)
+     )}
+  end
+
+  def handle_event("cancel_upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :template, ref)}
   end
 
   def handle_event("save", %{"event" => event_params} = params, socket) do

@@ -24,7 +24,23 @@ defmodule CertfyWeb.EventLiveTest do
 
       assert html =~ "Eventos"
       assert html =~ event.name
-      assert html =~ "Tem template?"
+      assert html =~ "Template"
+    end
+
+    test "filters events by query and template", %{conn: conn, scope: scope} do
+      with_template =
+        event_fixture(scope, %{name: "Encontro com template", template_path: "templates/a.pptx"})
+
+      without_template =
+        event_fixture(scope, %{name: "Encontro sem template", template_path: nil})
+
+      {:ok, _lv, html} = live(conn, ~p"/events?template=no")
+      assert html =~ without_template.name
+      refute html =~ with_template.name
+
+      {:ok, _lv, html} = live(conn, ~p"/events?q=com template")
+      assert html =~ with_template.name
+      refute html =~ without_template.name
     end
 
     test "saves new event", %{conn: conn} do
@@ -154,7 +170,7 @@ defmodule CertfyWeb.EventLiveTest do
     test "deletes event in listing", %{conn: conn, event: event} do
       {:ok, index_live, _html} = live(conn, ~p"/events")
 
-      assert index_live |> element("#events-#{event.id} a", "Excluir") |> render_click()
+      assert index_live |> element("#events-#{event.id} button", "Excluir") |> render_click()
       refute has_element?(index_live, "#events-#{event.id}")
     end
   end
@@ -208,17 +224,17 @@ defmodule CertfyWeb.EventLiveTest do
     test "shows and removes the event template", %{conn: conn, event: event, scope: scope} do
       {:ok, show_live, html} = live(conn, ~p"/events/#{event}")
 
-      assert html =~ "Baixar template"
-      assert html =~ "Remover template"
+      assert html =~ "Baixar"
+      assert html =~ "Remover"
       assert html =~ ~p"/events/#{event}/template"
 
       show_live
-      |> element("button", "Remover template")
+      |> element("button", "Remover")
       |> render_click()
 
       html = render(show_live)
       assert html =~ "Template removido."
-      refute html =~ "Baixar template"
+      refute html =~ "Baixar"
       assert is_nil(Certfy.Events.get_event!(scope, event.id).template_path)
     end
   end

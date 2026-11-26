@@ -62,44 +62,23 @@ defmodule CertfyWeb.Router do
       end
     end
 
-    scope "/events" do
-      get "/:id/template", EventController, :download_template
+    live_session :app, on_mount: @auth_hooks do
+      get "/events/:id/template", EventController, :download_template
 
-      live_session :events, on_mount: @auth_hooks do
-        live "/", EventLive.Index, :index
-        live "/new", EventLive.Form, :new
-        live "/:id", EventLive.Show, :show
-        live "/:id/edit", EventLive.Form, :edit
-      end
-    end
+      live "/events", EventLive.Index, :index
+      live "/events/new", EventLive.Form, :new
+      live "/events/:id", EventLive.Show, :show
+      live "/events/:id/edit", EventLive.Form, :edit
 
-    scope "/events/:event_id/batches" do
-      live_session :batches,
-        on_mount:
-          @auth_hooks ++
-            [
-              {CertfyWeb.ResourceHooks, :load_event}
-            ] do
-        live "/", BatchLive.Index, :index
-        live "/new", BatchLive.Form, :new
-        live "/:id", BatchLive.Show, :show
-        live "/:id/edit", BatchLive.Form, :edit
-      end
-    end
+      live "/batches", BatchLive.Index, :index
+      live "/batches/new", BatchLive.Form, :new
+      live "/batches/:id", BatchLive.Show, :show
+      live "/batches/:id/edit", BatchLive.Form, :edit
 
-    scope "/events/:event_id/batches/:batch_id/participants" do
-      live_session :participants,
-        on_mount:
-          @auth_hooks ++
-            [
-              {CertfyWeb.ResourceHooks, :load_event},
-              {CertfyWeb.ResourceHooks, :load_batch}
-            ] do
-        live "/", ParticipantLive.Index, :index
-        live "/new", ParticipantLive.Form, :new
-        live "/:id", ParticipantLive.Show, :show
-        live "/:id/edit", ParticipantLive.Form, :edit
-      end
+      live "/participants", ParticipantLive.Index, :index
+      live "/participants/new", ParticipantLive.Form, :new
+      live "/participants/:id", ParticipantLive.Show, :show
+      live "/participants/:id/edit", ParticipantLive.Form, :edit
     end
   end
 

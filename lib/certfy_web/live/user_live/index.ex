@@ -7,16 +7,60 @@ defmodule CertfyWeb.UserLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} nav={:users}>
       <.header>
         Usuários
         <:subtitle>Gerencie quem tem acesso ao Certfy.</:subtitle>
       </.header>
 
-      <div class="grid gap-6 lg:grid-cols-3">
+      <.form for={@filter_form} id="user-filters" phx-change="filter" class="mb-4">
+        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_11rem_11rem] md:items-end">
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium">Buscar</span>
+            <span class="input input-bordered flex w-full items-center gap-2">
+              <.icon name="hero-magnifying-glass" class="size-4 opacity-60" />
+              <input
+                type="search"
+                name="q"
+                value={@filters["q"]}
+                placeholder="Nome ou e-mail"
+                class="grow"
+                phx-debounce="300"
+              />
+            </span>
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium">Perfil</span>
+            <select name="role" class="select select-bordered w-full">
+              <option value="all" selected={@filters["role"] == "all"}>Todos</option>
+
+              <option value="ADMIN" selected={@filters["role"] == "ADMIN"}>Admin</option>
+
+              <option value="USER" selected={@filters["role"] == "USER"}>Usuário</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium">Status</span>
+            <select name="status" class="select select-bordered w-full">
+              <option value="all" selected={@filters["status"] == "all"}>Todos</option>
+
+              <option value="active" selected={@filters["status"] == "active"}>Ativos</option>
+
+              <option value="deactivated" selected={@filters["status"] == "deactivated"}>
+                Desativados
+              </option>
+            </select>
+          </label>
+        </div>
+      </.form>
+
+      <div class="space-y-6">
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body">
             <h2 class="card-title text-base">Convidar usuário</h2>
+
             <p class="text-sm text-base-content/70">
               Envie um link por e-mail para a pessoa criar a conta.
             </p>
@@ -30,61 +74,65 @@ defmodule CertfyWeb.UserLive.Index do
           </div>
         </div>
 
-        <div class="card bg-base-100 shadow-sm lg:col-span-2">
+        <div class="card bg-base-100 shadow-sm">
           <div class="card-body p-0">
-            <div class="overflow-x-auto">
-              <.table id="users" rows={@streams.users}>
-                <:col :let={{_id, user}} label="Usuário">
-                  <div>
-                    <div class="font-medium">{user.name}</div>
-                    <div class="text-xs text-base-content/60">{user.email}</div>
-                  </div>
-                </:col>
-                <:col :let={{_id, user}} label="Perfil">
+            <div id="users" phx-update="stream" class="divide-y divide-base-300">
+              <div
+                :for={{id, user} <- @streams.users}
+                id={id}
+                class="grid gap-3 px-4 py-4 md:grid-cols-[minmax(0,1fr)_7rem_7rem_15rem] md:items-center"
+              >
+                <div class="min-w-0">
+                  <p class="truncate text-base font-medium">{user.name}</p>
+
+                  <p class="truncate text-sm text-base-content/70">{user.email}</p>
+                </div>
+
+                <div>
                   <span class={role_badge(user.role)}>{role_label(user.role)}</span>
-                </:col>
-                <:col :let={{_id, user}} label="Status">
+                </div>
+
+                <div>
                   <span class={status_badge(user)}>{status_label(user)}</span>
-                </:col>
-                <:action :let={{_id, user}}>
+                </div>
+
+                <div class="flex flex-col gap-1">
                   <%= if user.id == @current_scope.user.id do %>
-                    <span class="badge badge-outline badge-sm">Você</span>
+                    <span class="badge badge-outline badge-sm self-start">Você</span>
                   <% else %>
-                    <div class="flex flex-wrap gap-1">
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-xs"
-                        phx-click="change_role"
-                        phx-value-id={user.id}
-                        phx-value-role={if user.role == :ADMIN, do: "USER", else: "ADMIN"}
-                      >
-                        {if user.role == :ADMIN, do: "Tornar usuário", else: "Tornar admin"}
-                      </button>
+                    <button
+                      type="button"
+                      class="btn btn-soft"
+                      phx-click="change_role"
+                      phx-value-id={user.id}
+                      phx-value-role={if user.role == :ADMIN, do: "USER", else: "ADMIN"}
+                    >
+                      {if user.role == :ADMIN, do: "Tornar usuário", else: "Tornar admin"}
+                    </button>
 
-                      <button
-                        :if={is_nil(user.deactivated_at)}
-                        type="button"
-                        class="btn btn-ghost btn-xs text-error"
-                        phx-click="deactivate"
-                        phx-value-id={user.id}
-                        data-confirm="Desativar este usuário? Ele perderá o acesso imediatamente."
-                      >
-                        Desativar
-                      </button>
+                    <button
+                      :if={is_nil(user.deactivated_at)}
+                      type="button"
+                      class="btn btn-soft btn-error"
+                      phx-click="deactivate"
+                      phx-value-id={user.id}
+                      data-confirm="Desativar este usuário? Ele perderá o acesso imediatamente."
+                    >
+                      Desativar
+                    </button>
 
-                      <button
-                        :if={user.deactivated_at}
-                        type="button"
-                        class="btn btn-ghost btn-xs text-success"
-                        phx-click="reactivate"
-                        phx-value-id={user.id}
-                      >
-                        Reativar
-                      </button>
-                    </div>
+                    <button
+                      :if={user.deactivated_at}
+                      type="button"
+                      class="btn btn-soft"
+                      phx-click="reactivate"
+                      phx-value-id={user.id}
+                    >
+                      Reativar
+                    </button>
                   <% end %>
-                </:action>
-              </.table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -101,16 +149,47 @@ defmodule CertfyWeb.UserLive.Index do
             Nenhum convite pendente.
           </div>
 
-          <div :if={!@invitations_empty?} class="overflow-x-auto">
-            <.table id="invitations" rows={@streams.invitations}>
-              <:col :let={{_id, invitation}} label="E-mail">{invitation.email}</:col>
-              <:col :let={{_id, invitation}} label="Convidado por">
-                {invitation.invited_by.name}
-              </:col>
-              <:col :let={{_id, invitation}} label="Expira em">
-                {format_datetime(invitation.expires_at)}
-              </:col>
-            </.table>
+          <div :if={!@invitations_empty?} class="divide-y divide-base-300">
+            <div id="invitations" phx-update="stream">
+              <div
+                :for={{id, invitation} <- @streams.invitations}
+                id={id}
+                class="grid gap-3 py-4 md:grid-cols-[minmax(0,1fr)_10rem_9rem_11rem] md:items-center"
+              >
+                <div class="min-w-0">
+                  <p class="truncate text-base font-medium">{invitation.email}</p>
+                </div>
+
+                <div class="text-sm text-base-content/70">
+                  {invitation.invited_by.name}
+                </div>
+
+                <div class="text-sm text-base-content/70">
+                  {format_datetime(invitation.expires_at)}
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    class="btn btn-soft"
+                    phx-click="resend_invitation"
+                    phx-value-id={invitation.id}
+                  >
+                    Reenviar
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-soft btn-error"
+                    phx-click="revoke_invitation"
+                    phx-value-id={invitation.id}
+                    data-confirm="Revogar este convite? O link deixará de funcionar."
+                  >
+                    Revogar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -120,17 +199,62 @@ defmodule CertfyWeb.UserLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    scope = socket.assigns.current_scope
-    users = Admin.list_users(scope)
-    invitations = Admin.list_pending_invitations(scope)
+    filters = %{"q" => "", "role" => "all", "status" => "all"}
 
     {:ok,
      socket
      |> assign(:page_title, "Usuários")
      |> assign(:invite_form, to_form(%{"email" => ""}, as: "invitation"))
-     |> assign(:invitations_empty?, invitations == [])
-     |> stream(:users, users)
-     |> stream(:invitations, invitations)}
+     |> assign(:filters, filters)
+     |> assign(:filter_form, to_form(filters))
+     |> load_users()
+     |> refresh_invitations()}
+  end
+
+  @impl true
+  def handle_event("filter", params, socket) do
+    filters = %{
+      "q" => params["q"] || "",
+      "role" => params["role"] || "all",
+      "status" => params["status"] || "all"
+    }
+
+    {:noreply,
+     socket
+     |> assign(:filters, filters)
+     |> assign(:filter_form, to_form(filters))
+     |> load_users()
+     |> refresh_invitations()}
+  end
+
+  def handle_event("resend_invitation", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+    invitation = Admin.get_invitation(scope, id)
+
+    case invitation &&
+           Admin.resend_invitation(scope, invitation, &url(~p"/users/register/#{&1}")) do
+      {:ok, invitation} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Convite reenviado para #{invitation.email}.")
+         |> refresh_invitations()}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Não foi possível reenviar o convite.")}
+    end
+  end
+
+  def handle_event("revoke_invitation", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+    invitation = Admin.get_invitation(scope, id)
+
+    case invitation && Admin.revoke_invitation(scope, invitation) do
+      {:ok, _invitation} ->
+        {:noreply, socket |> put_flash(:info, "Convite revogado.") |> refresh_invitations()}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Não foi possível revogar o convite.")}
+    end
   end
 
   @impl true
@@ -205,13 +329,19 @@ defmodule CertfyWeb.UserLive.Index do
     end
   end
 
+  defp load_users(socket) do
+    users = Admin.list_users(socket.assigns.current_scope, socket.assigns.filters)
+
+    stream(socket, :users, users, reset: true)
+  end
+
   defp refresh_users(socket) do
-    stream(socket, :users, Admin.list_users(socket.assigns.current_scope), reset: true)
+    load_users(socket)
   end
 
   defp refresh_invitations(socket) do
     scope = socket.assigns.current_scope
-    invitations = Admin.list_pending_invitations(scope)
+    invitations = Admin.list_pending_invitations(scope, socket.assigns.filters)
 
     socket
     |> assign(:invitations_empty?, invitations == [])

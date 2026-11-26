@@ -67,7 +67,7 @@ defmodule CertfyWeb.CoreComponents do
       {@rest}
     >
       <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
+        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap shadow-lg",
         @kind == :info && "alert-info",
         @kind == :error && "alert-error"
       ]}>
@@ -98,16 +98,11 @@ defmodule CertfyWeb.CoreComponents do
   """
   attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
   attr :class, :any
-  attr :variant, :string, values: ~w(primary)
+  attr :variant, :string, values: ~w(primary soft ghost danger)
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
-
-    assigns =
-      assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
-      end)
+    assigns = assign(assigns, :class, button_classes(assigns[:variant], assigns[:class]))
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
       ~H"""
@@ -122,6 +117,27 @@ defmodule CertfyWeb.CoreComponents do
       </button>
       """
     end
+  end
+
+  defp button_classes(variant, class) do
+    custom = class |> List.wrap() |> Enum.reject(&(&1 in [nil, false]))
+
+    if Enum.any?(custom, &(is_binary(&1) and String.contains?(&1, "btn-"))) do
+      ["btn" | custom]
+    else
+      ["btn", Map.fetch!(variants(), variant) | custom]
+    end
+    |> Enum.uniq()
+  end
+
+  defp variants do
+    %{
+      "primary" => "btn-primary",
+      "soft" => "btn-soft",
+      "ghost" => "btn-ghost",
+      "danger" => "btn-soft btn-error",
+      nil => "btn-primary btn-soft"
+    }
   end
 
   @doc """
@@ -324,19 +340,114 @@ defmodule CertfyWeb.CoreComponents do
 
   def header(assigns) do
     ~H"""
-    <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
-      <div>
-        <h1 class="text-lg font-semibold leading-8">
+    <header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div class="min-w-0">
+        <h1 class="font-display text-2xl font-semibold leading-tight sm:text-3xl">
           {render_slot(@inner_block)}
         </h1>
 
-        <p :if={@subtitle != []} class="text-sm text-base-content/70">
+        <p :if={@subtitle != []} class="mt-1 text-sm text-base-content/70">
           {render_slot(@subtitle)}
         </p>
       </div>
 
-      <div class="flex-none">{render_slot(@actions)}</div>
+      <div :if={@actions != []} class="flex flex-wrap items-center gap-2 sm:flex-none">
+        {render_slot(@actions)}
+      </div>
     </header>
+    """
+  end
+
+  @doc """
+  Renders a breadcrumb trail.
+
+  Each item is a map with `:label` and, for non-terminal items, `:navigate`.
+  """
+  attr :items, :list, required: true
+
+  def breadcrumb(assigns) do
+    ~H"""
+    <nav aria-label="Trilha" class="mb-4">
+      <ol class="flex flex-wrap items-center gap-1.5 text-sm text-base-content/60">
+        <%= for {item, index} <- Enum.with_index(@items) do %>
+          <li :if={index > 0} class="select-none" aria-hidden="true">/</li>
+          <li class="min-w-0">
+            <%= if item[:navigate] do %>
+              <.link navigate={item.navigate} class="truncate hover:text-base-content hover:underline">
+                {item.label}
+              </.link>
+            <% else %>
+              <span class="truncate text-base-content">{item.label}</span>
+            <% end %>
+          </li>
+        <% end %>
+      </ol>
+    </nav>
+    """
+  end
+
+  @doc """
+  Renders a sheet surface used by record detail and edit pages.
+  """
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def sheet(assigns) do
+    ~H"""
+    <div class={["overflow-hidden rounded-box border border-base-300 bg-base-100", @class]}>
+      <div class="divide-y divide-base-300">
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a section inside a sheet.
+  """
+  attr :title, :string, required: true
+  attr :description, :string, default: nil
+  slot :actions
+  slot :inner_block
+
+  def section(assigns) do
+    ~H"""
+    <section class="p-5 sm:p-6">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="font-display text-lg font-semibold">{@title}</h2>
+          <p :if={@description} class="mt-1 text-sm text-base-content/70">{@description}</p>
+        </div>
+        <div :if={@actions != []}>{render_slot(@actions)}</div>
+      </div>
+
+      <div class="mt-4">{render_slot(@inner_block)}</div>
+    </section>
+    """
+  end
+
+  @doc """
+  Renders an empty state with an optional call to action.
+  """
+  attr :title, :string, required: true
+  attr :description, :string, default: nil
+  slot :action
+
+  def empty_state(assigns) do
+    ~H"""
+    <div class="flex flex-col items-center justify-center gap-3 rounded-box border border-dashed border-base-300 px-6 py-12 text-center">
+      <svg viewBox="0 0 32 32" class="h-10 w-10 text-base-300" aria-hidden="true">
+        <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="1" />
+      </svg>
+
+      <div>
+        <h2 class="font-display text-lg font-semibold">{@title}</h2>
+        <p :if={@description} class="mt-1 text-sm text-base-content/60">{@description}</p>
+      </div>
+
+      <div :if={@action != []} class="mt-1">{render_slot(@action)}</div>
+    </div>
     """
   end
 
@@ -372,7 +483,7 @@ defmodule CertfyWeb.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
+    <table class="table table-zebra table-responsive">
       <thead>
         <tr>
           <th :for={col <- @col}>{col[:label]}</th>
@@ -387,13 +498,14 @@ defmodule CertfyWeb.CoreComponents do
         <tr :for={row <- @rows} id={@row_id && @row_id.(row)}>
           <td
             :for={col <- @col}
+            data-label={col[:label]}
             phx-click={@row_click && @row_click.(row)}
             class={@row_click && "hover:cursor-pointer"}
           >
             {render_slot(col, @row_item.(row))}
           </td>
 
-          <td :if={@action != []} class="w-0 font-semibold">
+          <td :if={@action != []} data-label="Ações" class="w-0 font-semibold">
             <div class="flex gap-4">
               <%= for action <- @action do %>
                 {render_slot(action, @row_item.(row))}

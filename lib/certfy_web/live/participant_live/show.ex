@@ -6,43 +6,88 @@ defmodule CertfyWeb.ParticipantLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} nav={:participants}>
+      <.breadcrumb items={[
+        %{label: "Participantes", navigate: ~p"/participants"},
+        %{label: @event.name, navigate: ~p"/participants?event_id=#{@event.id}"},
+        %{label: @batch.name, navigate: ~p"/participants?batch_id=#{@batch.id}"},
+        %{label: @participant.name}
+      ]} />
       <.header>
-        Participante {@participant.id}
-        <:subtitle>Dados do participante no lote {@batch.name}.</:subtitle>
+        {@participant.name}
+        <:subtitle>Participante do lote {@batch.name} · {@event.name}.</:subtitle>
 
         <:actions>
-          <.button navigate={~p"/events/#{@event}/batches/#{@batch}/participants"}>
+          <.button
+            navigate={~p"/participants?batch_id=#{@batch.id}"}
+            aria-label="Voltar para participantes"
+            variant="ghost"
+          >
             <.icon name="hero-arrow-left" />
           </.button>
 
           <.button
             variant="primary"
-            navigate={
-              ~p"/events/#{@event}/batches/#{@batch}/participants/#{@participant}/edit?return_to=show"
-            }
+            navigate={~p"/participants/#{@participant}/edit?return_to=show"}
           >
             <.icon name="hero-pencil-square" /> Editar participante
           </.button>
         </:actions>
       </.header>
 
-      <div class="stats stats-vertical w-full border border-base-300 bg-base-100 shadow-sm lg:stats-horizontal">
-        <div class="stat">
-          <div class="stat-title">Nome</div>
-          <div class="stat-value text-lg">{@participant.name}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">E-mail</div>
-          <div class="stat-value text-base">{@participant.email || "—"}</div>
-        </div>
-      </div>
+      <.sheet>
+        <.section title="Informações">
+          <dl class="grid gap-4 sm:grid-cols-3">
+            <div>
+              <dt class="text-sm text-base-content/60">Nome</dt>
 
-      <.key_value_list
-        id="participant-extra-data-list"
-        data={@participant.extra_data}
-        class="mt-6"
-      />
+              <dd class="mt-1 text-base font-medium">{@participant.name}</dd>
+            </div>
+
+            <div>
+              <dt class="text-sm text-base-content/60">E-mail</dt>
+
+              <dd class="mt-1 text-base">{@participant.email || "—"}</dd>
+            </div>
+
+            <div>
+              <dt class="text-sm text-base-content/60">Atualizado em</dt>
+
+              <dd class="mt-1 text-base">
+                {Calendar.strftime(@participant.updated_at, "%d/%m/%Y às %H:%M")}
+              </dd>
+            </div>
+          </dl>
+        </.section>
+
+        <.section title="Dados adicionais">
+          <.key_value_list id="participant-extra-data-list" data={@participant.extra_data} />
+        </.section>
+
+        <.section title="Contexto">
+          <dl class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt class="text-sm text-base-content/60">Evento</dt>
+
+              <dd class="mt-1 text-base font-medium">
+                <.link navigate={~p"/events/#{@event}"} class="link-hover">
+                  {@event.name}
+                </.link>
+              </dd>
+            </div>
+
+            <div>
+              <dt class="text-sm text-base-content/60">Lote</dt>
+
+              <dd class="mt-1 text-base font-medium">
+                <.link navigate={~p"/batches/#{@batch}"} class="link-hover">
+                  {@batch.name}
+                </.link>
+              </dd>
+            </div>
+          </dl>
+        </.section>
+      </.sheet>
     </Layouts.app>
     """
   end
@@ -53,13 +98,14 @@ defmodule CertfyWeb.ParticipantLive.Show do
       Events.subscribe_participants(socket.assigns.current_scope)
     end
 
+    participant = Events.get_participant_with_context!(socket.assigns.current_scope, id)
+
     {:ok,
      socket
      |> assign(:page_title, "Participante")
-     |> assign(
-       :participant,
-       Events.get_participant!(socket.assigns.current_scope, socket.assigns.batch, id)
-     )}
+     |> assign(:participant, participant)
+     |> assign(:batch, participant.batch)
+     |> assign(:event, participant.batch.event)}
   end
 
   @impl true
@@ -77,9 +123,7 @@ defmodule CertfyWeb.ParticipantLive.Show do
     {:noreply,
      socket
      |> put_flash(:error, "O participante atual foi excluído.")
-     |> push_navigate(
-       to: ~p"/events/#{socket.assigns.event}/batches/#{socket.assigns.batch}/participants"
-     )}
+     |> push_navigate(to: ~p"/participants")}
   end
 
   def handle_info({type, %Certfy.Events.Participant{}}, socket)

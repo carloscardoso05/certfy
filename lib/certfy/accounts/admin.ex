@@ -10,10 +10,36 @@ defmodule Certfy.Accounts.Admin do
   alias Certfy.Accounts.{Invitation, Scope, User, UserNotifier}
 
   @doc "Lists every user, including deactivated ones."
-  def list_users(scope) do
+  def list_users(scope, opts \\ %{}) do
     authorize_admin!(scope)
 
-    Repo.all(from u in User, order_by: [asc: u.name])
+    query = from u in User, order_by: [asc: u.name]
+
+    query =
+      case normalize_term(opts["q"]) do
+        nil ->
+          query
+
+        term ->
+          where(
+            query,
+            [u],
+            ilike(u.name, ^"%#{term}%") or ilike(u.email, ^"%#{term}%")
+          )
+      end
+
+    query =
+      case opts["role"] do
+        "ADMIN" -> where(query, [u], u.role == :ADMIN)
+        "USER" -> where(query, [u], u.role == :USER)
+        _ -> query
+      end
+
+    case opts["status"] do
+      "active" -> Repo.all(where(query, [u], is_nil(u.deactivated_at)))
+      "deactivated" -> Repo.all(where(query, [u], not is_nil(u.deactivated_at)))
+      _ -> Repo.all(query)
+    end
   end
 
   @doc "Gets a user by id for admin actions."
@@ -23,14 +49,21 @@ defmodule Certfy.Accounts.Admin do
   end
 
   @doc "Lists invitations that were not accepted yet and are still valid."
-  def list_pending_invitations(scope) do
+  def list_pending_invitations(scope, opts \\ %{}) do
     authorize_admin!(scope)
 
-    Repo.all(
+    query =
       from i in Invitation.pending_query(),
         order_by: [desc: i.inserted_at],
         preload: [:invited_by]
-    )
+
+    query =
+      case normalize_term(opts["q"]) do
+        nil -> query
+        term -> where(query, [i], ilike(i.email, ^"%#{term}%"))
+      end
+
+    Repo.all(query)
   end
 
   @doc """
@@ -76,6 +109,44 @@ defmodule Certfy.Accounts.Admin do
     end
   end
 
+  @doc "Gets an invitation by id for admin actions."
+  def get_invitation(scope, id) do
+    authorize_admin!(scope)
+    Repo.get(Invitation, id)
+  end
+
+  @doc "Resends a pending invitation, replacing the previous token."
+  def resend_invitation(scope, %Invitation{} = invitation, invited_url_fun)
+      when is_function(invited_url_fun, 1) do
+    authorize_admin!(scope)
+
+    if invitation.accepted_at ||
+         DateTime.compare(invitation.expires_at, DateTime.utc_now(:second)) != :gt do
+      {:error, :invalid_invitation}
+    else
+      {new_invitation, token} = Invitation.build(invitation.email, scope.user.id)
+
+      Repo.transact(fn ->
+        Repo.delete!(invitation)
+        {:ok, new_invitation} = Repo.insert(new_invitation)
+
+        UserNotifier.deliver_invitation_instructions(
+          new_invitation,
+          invited_url_fun.(token),
+          scope.user
+        )
+
+        {:ok, new_invitation}
+      end)
+    end
+  end
+
+  @doc "Revokes a pending invitation."
+  def revoke_invitation(scope, %Invitation{} = invitation) do
+    authorize_admin!(scope)
+    Repo.delete(invitation)
+  end
+
   @doc "Deactivates a user and expires every token of theirs."
   def deactivate_user(scope, %User{} = user) do
     authorize_admin!(scope)
@@ -115,5 +186,14 @@ defmodule Certfy.Accounts.Admin do
 
   defp authorize_admin!(_scope) do
     raise ArgumentError, "admin access required"
+  end
+
+  defp normalize_term(nil), do: nil
+
+  defp normalize_term(term) when is_binary(term) do
+    case String.trim(term) do
+      "" -> nil
+      term -> term
+    end
   end
 end

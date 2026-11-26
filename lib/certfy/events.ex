@@ -10,7 +10,7 @@ defmodule Certfy.Events do
   alias Certfy.Repo
   alias Certfy.Storage
 
-  alias Certfy.Events.Event
+  alias Certfy.Events.{Batch, Event, Participant}
   alias Certfy.Accounts.Scope
 
   @doc """
@@ -46,6 +46,55 @@ defmodule Certfy.Events do
   """
   def list_events(%Scope{} = scope) do
     Repo.all_by(Event, user_id: scope.user.id)
+  end
+
+  @doc """
+  Returns a paginated and filtered list of events.
+
+  Supported options: `"q"`, `"template"` (`"yes"`/`"no"`), `"sort"`
+  (`"updated"`/`"name"`) and `"page"`.
+  """
+  def list_events_page(%Scope{} = scope, opts \\ %{}) do
+    page = parse_page(opts["page"])
+    per_page = 25
+
+    query =
+      from(e in Event, where: e.user_id == ^scope.user.id)
+      |> filter_event_query(opts)
+      |> order_events(opts["sort"])
+
+    total = Repo.aggregate(query, :count, :id)
+
+    items =
+      Repo.all(
+        from e in query,
+          limit: ^per_page,
+          offset: ^((page - 1) * per_page)
+      )
+
+    page_result(items, total, page, per_page)
+  end
+
+  @doc """
+  Counts the batches of an event.
+  """
+  def count_batches(%Scope{} = scope, %Event{} = event) do
+    Repo.aggregate(
+      from(b in Batch, where: b.event_id == ^event.id and b.user_id == ^scope.user.id),
+      :count,
+      :id
+    )
+  end
+
+  @doc """
+  Counts the participants of a batch.
+  """
+  def count_participants(%Scope{} = scope, %Batch{} = batch) do
+    Repo.aggregate(
+      from(p in Participant, where: p.batch_id == ^batch.id and p.user_id == ^scope.user.id),
+      :count,
+      :id
+    )
   end
 
   @doc """
@@ -228,10 +277,48 @@ defmodule Certfy.Events do
   end
 
   @doc """
+  Returns all batches of the user with their event preloaded.
+  """
+  def list_batches_with_events(%Scope{} = scope) do
+    Repo.all_by(Batch, user_id: scope.user.id)
+    |> Repo.preload(:event)
+  end
+
+  @doc """
   Returns the list of batches for the given event.
   """
   def list_batches(%Scope{} = scope, %Event{} = event) do
     Repo.all_by(Batch, user_id: scope.user.id, event_id: event.id)
+  end
+
+  @doc """
+  Returns a paginated and filtered list of all batches of the user.
+
+  Supported options: `"q"`, `"event_id"` and `"page"`.
+  """
+  def list_batches_page(%Scope{} = scope, opts \\ %{}) do
+    page = parse_page(opts["page"])
+    per_page = 25
+
+    query =
+      from(b in Batch,
+        join: e in assoc(b, :event),
+        where: b.user_id == ^scope.user.id
+      )
+      |> filter_batch_query(opts)
+      |> order_by([b], desc: b.updated_at)
+
+    total = Repo.aggregate(query, :count, :id)
+
+    items =
+      query
+      |> limit(^per_page)
+      |> offset(^((page - 1) * per_page))
+      |> Repo.all()
+      |> Repo.preload(:event)
+      |> attach_participant_counts()
+
+    page_result(items, total, page, per_page)
   end
 
   @doc """
@@ -250,6 +337,15 @@ defmodule Certfy.Events do
   """
   def get_batch!(%Scope{} = scope, id) do
     Repo.get_by!(Batch, id: id, user_id: scope.user.id)
+  end
+
+  @doc """
+  Gets a batch with its event preloaded.
+  """
+  def get_batch_with_event!(%Scope{} = scope, id) do
+    scope
+    |> get_batch!(id)
+    |> Repo.preload(:event)
   end
 
   @doc """
@@ -393,6 +489,64 @@ defmodule Certfy.Events do
   end
 
   @doc """
+  Returns a paginated and filtered list of participants for a batch.
+
+  Supported options: `"q"`, `"email"` (`"with"`/`"without"`) and `"page"`.
+  """
+  def list_participants_page(%Scope{} = scope, %Batch{} = batch, opts \\ %{}) do
+    page = parse_page(opts["page"])
+    per_page = 25
+
+    query =
+      from(p in Participant,
+        where: p.batch_id == ^batch.id and p.user_id == ^scope.user.id
+      )
+      |> filter_participant_query(opts)
+      |> order_by([p], asc: p.name)
+
+    total = Repo.aggregate(query, :count, :id)
+
+    items =
+      Repo.all(
+        from p in query,
+          limit: ^per_page,
+          offset: ^((page - 1) * per_page)
+      )
+
+    page_result(items, total, page, per_page)
+  end
+
+  @doc """
+  Returns a paginated and filtered list of all participants of the user.
+
+  Supported options: `"q"`, `"event_id"`, `"batch_id"` and `"page"`.
+  """
+  def list_participants_page_all(%Scope{} = scope, opts \\ %{}) do
+    page = parse_page(opts["page"])
+    per_page = 25
+
+    query =
+      from(p in Participant,
+        join: b in assoc(p, :batch),
+        join: e in assoc(b, :event),
+        where: p.user_id == ^scope.user.id
+      )
+      |> filter_global_participant_query(opts)
+      |> order_by([p], asc: p.name)
+
+    total = Repo.aggregate(query, :count, :id)
+
+    items =
+      query
+      |> limit(^per_page)
+      |> offset(^((page - 1) * per_page))
+      |> Repo.all()
+      |> Repo.preload(batch: :event)
+
+    page_result(items, total, page, per_page)
+  end
+
+  @doc """
   Gets a single participant.
 
   Raises `Ecto.NoResultsError` if the Participant does not exist.
@@ -408,6 +562,15 @@ defmodule Certfy.Events do
   """
   def get_participant!(%Scope{} = scope, id) do
     Repo.get_by!(Participant, id: id, user_id: scope.user.id)
+  end
+
+  @doc """
+  Gets a participant with its batch and event preloaded.
+  """
+  def get_participant_with_context!(%Scope{} = scope, id) do
+    scope
+    |> get_participant!(id)
+    |> Repo.preload(batch: :event)
   end
 
   @doc """
@@ -503,5 +666,137 @@ defmodule Certfy.Events do
     true = participant.user_id == scope.user.id
 
     Participant.changeset(participant, attrs, scope)
+  end
+
+  defp filter_event_query(query, opts) do
+    query =
+      case normalize_term(opts["q"]) do
+        nil -> query
+        term -> where(query, [e], ilike(e.name, ^"%#{term}%"))
+      end
+
+    case opts["template"] do
+      "yes" -> where(query, [e], not is_nil(e.template_path))
+      "no" -> where(query, [e], is_nil(e.template_path))
+      _ -> query
+    end
+  end
+
+  defp filter_participant_query(query, opts) do
+    query =
+      case normalize_term(opts["q"]) do
+        nil ->
+          query
+
+        term ->
+          where(
+            query,
+            [p],
+            ilike(p.name, ^"%#{term}%") or ilike(p.email, ^"%#{term}%")
+          )
+      end
+
+    case opts["email"] do
+      "with" -> where(query, [p], not is_nil(p.email) and p.email != "")
+      "without" -> where(query, [p], is_nil(p.email) or p.email == "")
+      _ -> query
+    end
+  end
+
+  defp filter_batch_query(query, opts) do
+    query =
+      case normalize_term(opts["q"]) do
+        nil ->
+          query
+
+        term ->
+          where(
+            query,
+            [b, e],
+            ilike(b.name, ^"%#{term}%") or ilike(e.name, ^"%#{term}%")
+          )
+      end
+
+    case normalize_term(opts["event_id"]) do
+      nil -> query
+      event_id -> where(query, [b], b.event_id == ^event_id)
+    end
+  end
+
+  defp filter_global_participant_query(query, opts) do
+    query =
+      case normalize_term(opts["q"]) do
+        nil ->
+          query
+
+        term ->
+          where(
+            query,
+            [p],
+            ilike(p.name, ^"%#{term}%") or ilike(p.email, ^"%#{term}%")
+          )
+      end
+
+    query =
+      case normalize_term(opts["event_id"]) do
+        nil -> query
+        event_id -> where(query, [p, b, e], e.id == ^event_id)
+      end
+
+    case normalize_term(opts["batch_id"]) do
+      nil -> query
+      batch_id -> where(query, [p], p.batch_id == ^batch_id)
+    end
+  end
+
+  defp attach_participant_counts([]), do: []
+
+  defp attach_participant_counts(batches) do
+    ids = Enum.map(batches, & &1.id)
+
+    counts =
+      Repo.all(
+        from p in Participant,
+          where: p.batch_id in ^ids,
+          group_by: p.batch_id,
+          select: {p.batch_id, count(p.id)}
+      )
+      |> Map.new()
+
+    Enum.map(batches, &%{&1 | participants_count: Map.get(counts, &1.id, 0)})
+  end
+
+  defp order_events(query, "name"), do: order_by(query, [e], asc: e.name)
+  defp order_events(query, _sort), do: order_by(query, [e], desc: e.updated_at)
+
+  defp normalize_term(nil), do: nil
+  defp normalize_term(term) when is_integer(term), do: term
+
+  defp normalize_term(term) when is_binary(term) do
+    case String.trim(term) do
+      "" -> nil
+      term -> term
+    end
+  end
+
+  defp parse_page(page) when is_integer(page) and page > 0, do: page
+
+  defp parse_page(page) when is_binary(page) do
+    case Integer.parse(page) do
+      {page, ""} when page > 0 -> page
+      _ -> 1
+    end
+  end
+
+  defp parse_page(_page), do: 1
+
+  defp page_result(items, total, page, per_page) do
+    %{
+      items: items,
+      total: total,
+      page: page,
+      per_page: per_page,
+      pages: max(ceil(total / per_page), 1)
+    }
   end
 end
