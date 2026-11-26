@@ -9,7 +9,7 @@ defmodule CertfyWeb.BatchLive.Show do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         Lote {@batch.id}
-        <:subtitle>Este é um registro de lote do seu banco de dados.</:subtitle>
+        <:subtitle>Gerencie os participantes deste lote.</:subtitle>
 
         <:actions>
           <.button navigate={~p"/events/#{@event}/batches"}>
@@ -29,11 +29,16 @@ defmodule CertfyWeb.BatchLive.Show do
         </:actions>
       </.header>
 
-      <.list>
-        <:item title="Nome">{@batch.name}</:item>
-
-        <:item title="Dados adicionais">{map_size(@batch.extra_data || %{})}</:item>
-      </.list>
+      <div class="stats stats-vertical w-full border border-base-300 bg-base-100 shadow-sm lg:stats-horizontal">
+        <div class="stat">
+          <div class="stat-title">Nome</div>
+          <div class="stat-value text-lg">{@batch.name}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Dados adicionais</div>
+          <div class="stat-value text-lg">{map_size(@batch.extra_data || %{})}</div>
+        </div>
+      </div>
     </Layouts.app>
     """
   end

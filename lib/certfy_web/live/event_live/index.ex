@@ -9,6 +9,7 @@ defmodule CertfyWeb.EventLive.Index do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         Eventos
+        <:subtitle>Gerencie os eventos e seus lotes de certificados.</:subtitle>
         <:actions>
           <.button variant="primary" navigate={~p"/events/new"}>
             <.icon name="hero-plus" /> Novo evento
@@ -16,37 +17,49 @@ defmodule CertfyWeb.EventLive.Index do
         </:actions>
       </.header>
 
-      <.table
-        id="events"
-        rows={@streams.events}
-        row_click={fn {_id, event} -> JS.navigate(~p"/events/#{event}") end}
-      >
-        <:col :let={{_id, event}} label="Nome">{event.name}</:col>
-
-        <:col :let={{_id, event}} label="Tem template?">
-          {if event.template_path, do: "Sim", else: "Não"}
-        </:col>
-
-        <:col :let={{_id, event}} label="Dados adicionais">
-          {map_size(event.extra_data || %{})}
-        </:col>
-
-        <:action :let={{_id, event}}>
-          <div class="sr-only">
-            <.link navigate={~p"/events/#{event}"}>Ver</.link>
+      <div class="card bg-base-100 shadow-sm">
+        <div class="card-body p-0">
+          <div class="overflow-x-auto">
+            <.table
+              id="events"
+              rows={@streams.events}
+              row_click={fn {_id, event} -> JS.navigate(~p"/events/#{event}") end}
+            >
+              <:col :let={{_id, event}} label="Nome">
+                <span class="font-medium">{event.name}</span>
+              </:col>
+              <:col :let={{_id, event}} label="Tem template?">
+                <span class={template_badge(event)}>
+                  {if event.template_path, do: "Sim", else: "Não"}
+                </span>
+              </:col>
+              <:col :let={{_id, event}} label="Dados adicionais">
+                <span class="badge badge-ghost badge-sm">{map_size(event.extra_data || %{})}</span>
+              </:col>
+              <:action :let={{_id, event}}>
+                <div class="sr-only">
+                  <.link navigate={~p"/events/#{event}"}>Ver</.link>
+                </div>
+                <.link
+                  navigate={~p"/events/#{event}/edit"}
+                  class="btn btn-ghost btn-xs"
+                >
+                  Editar
+                </.link>
+              </:action>
+              <:action :let={{id, event}}>
+                <.link
+                  phx-click={JS.push("delete", value: %{id: event.id}) |> hide("##{id}")}
+                  data-confirm="Tem certeza?"
+                  class="btn btn-ghost btn-xs text-error"
+                >
+                  Excluir
+                </.link>
+              </:action>
+            </.table>
           </div>
-          <.link navigate={~p"/events/#{event}/edit"}>Editar</.link>
-        </:action>
-
-        <:action :let={{id, event}}>
-          <.link
-            phx-click={JS.push("delete", value: %{id: event.id}) |> hide("##{id}")}
-            data-confirm="Tem certeza?"
-          >
-            Excluir
-          </.link>
-        </:action>
-      </.table>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -80,4 +93,7 @@ defmodule CertfyWeb.EventLive.Index do
   defp list_events(current_scope) do
     Events.list_events(current_scope)
   end
+
+  defp template_badge(%{template_path: nil}), do: "badge badge-ghost badge-sm"
+  defp template_badge(_event), do: "badge badge-success badge-sm"
 end

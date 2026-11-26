@@ -6,7 +6,7 @@ defmodule Certfy.Accounts do
   import Ecto.Query, warn: false
   alias Certfy.Repo
 
-  alias Certfy.Accounts.{User, UserToken, UserNotifier}
+  alias Certfy.Accounts.{Invitation, User, UserToken, UserNotifier}
 
   ## Database getters
 
@@ -24,24 +24,6 @@ defmodule Certfy.Accounts do
   """
   def get_user_by_email(email) when is_binary(email) do
     Repo.get_by(User, email: email)
-  end
-
-  @doc """
-  Gets a user by email and password.
-
-  ## Examples
-
-      iex> get_user_by_email_and_password("foo@example.com", "correct_password")
-      %User{}
-
-      iex> get_user_by_email_and_password("foo@example.com", "invalid_password")
-      nil
-
-  """
-  def get_user_by_email_and_password(email, password)
-      when is_binary(email) and is_binary(password) do
-    user = Repo.get_by(User, email: email)
-    if User.valid_password?(user, password), do: user
   end
 
   @doc """
@@ -76,8 +58,57 @@ defmodule Certfy.Accounts do
   """
   def register_user(attrs) do
     %User{}
-    |> User.email_changeset(attrs)
+    |> User.registration_changeset(attrs)
     |> Repo.insert()
+  end
+
+  ## Invitations
+
+  @doc """
+  Gets a valid invitation by its plain token, or nil.
+  """
+  def get_invitation_by_token(token) do
+    with {:ok, query} <- Invitation.verify_token_query(token) do
+      Repo.one(query)
+    else
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Accepts an invitation and creates a confirmed user with the invited email.
+
+  The name comes from the registration form; the email always comes from the
+  invitation, never from user input.
+  """
+  def accept_invitation(token, attrs) do
+    Repo.transact(fn ->
+      with {:ok, query} <- Invitation.verify_token_query(token),
+           %Invitation{} = invitation <- Repo.one(query),
+           {:ok, user} <- insert_invited_user(invitation, attrs),
+           {:ok, _invitation} <- Repo.update(Invitation.accept_changeset(invitation)),
+           {_count, _} <- delete_pending_invitations(invitation.email) do
+        {:ok, user}
+      else
+        nil -> {:error, :invalid_invitation}
+        :error -> {:error, :invalid_invitation}
+        {:error, reason} -> {:error, reason}
+      end
+    end)
+  end
+
+  defp insert_invited_user(invitation, attrs) do
+    %User{}
+    |> User.registration_changeset(Map.put(attrs, :email, invitation.email))
+    |> User.confirm_changeset()
+    |> Repo.insert()
+  end
+
+  defp delete_pending_invitations(email) do
+    Repo.delete_all(
+      from i in Invitation,
+        where: i.email == ^email and is_nil(i.accepted_at)
+    )
   end
 
   ## Settings
@@ -112,6 +143,22 @@ defmodule Certfy.Accounts do
   end
 
   @doc """
+  Returns an `%Ecto.Changeset{}` for changing the user name.
+  """
+  def change_user_name(user, attrs \\ %{}) do
+    User.name_changeset(user, attrs)
+  end
+
+  @doc """
+  Updates the user name.
+  """
+  def update_user_name(user, attrs) do
+    user
+    |> User.name_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
   Updates the user email using the given token.
 
   If the token matches, the user email is updated and the token is deleted.
@@ -130,41 +177,6 @@ defmodule Certfy.Accounts do
         _ -> {:error, :transaction_aborted}
       end
     end)
-  end
-
-  @doc """
-  Returns an `%Ecto.Changeset{}` for changing the user password.
-
-  See `Certfy.Accounts.User.password_changeset/3` for a list of supported options.
-
-  ## Examples
-
-      iex> change_user_password(user)
-      %Ecto.Changeset{data: %User{}}
-
-  """
-  def change_user_password(user, attrs \\ %{}, opts \\ []) do
-    User.password_changeset(user, attrs, opts)
-  end
-
-  @doc """
-  Updates the user password.
-
-  Returns a tuple with the updated user, as well as a list of expired tokens.
-
-  ## Examples
-
-      iex> update_user_password(user, %{password: ...})
-      {:ok, {%User{}, [...]}}
-
-      iex> update_user_password(user, %{password: "too short"})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_user_password(user, attrs) do
-    user
-    |> User.password_changeset(attrs)
-    |> update_user_and_delete_all_tokens()
   end
 
   ## Session
@@ -203,35 +215,20 @@ defmodule Certfy.Accounts do
   @doc """
   Logs the user in by magic link.
 
-  There are three cases to consider:
+  There are two cases to consider:
 
   1. The user has already confirmed their email. They are logged in
      and the magic link is expired.
 
-  2. The user has not confirmed their email and no password is set.
-     In this case, the user gets confirmed, logged in, and all tokens -
-     including session ones - are expired. In theory, no other tokens
-     exist but we delete all of them for best security practices.
-
-  3. The user has not confirmed their email but a password is set.
-     This cannot happen in the default implementation but may be the
-     source of security pitfalls. See the "Mixing magic link and password registration" section of
-     `mix help phx.gen.auth`.
+  2. The user has not confirmed their email. In this case, the user gets
+     confirmed, logged in, and all tokens - including session ones - are
+     expired. In theory, no other tokens exist but we delete all of them for
+     best security practices.
   """
   def login_user_by_magic_link(token) do
     {:ok, query} = UserToken.verify_magic_link_token_query(token)
 
     case Repo.one(query) do
-      # Prevent session fixation attacks by disallowing magic links for unconfirmed users with password
-      {%User{confirmed_at: nil, hashed_password: hash}, _token} when not is_nil(hash) ->
-        raise """
-        magic link log in is not allowed for unconfirmed users with a password set!
-
-        This cannot happen with the default implementation, which indicates that you
-        might have adapted the code to a different use case. Please make sure to read the
-        "Mixing magic link and password registration" section of `mix help phx.gen.auth`.
-        """
-
       {%User{confirmed_at: nil} = user, _token} ->
         user
         |> User.confirm_changeset()
@@ -264,13 +261,24 @@ defmodule Certfy.Accounts do
   end
 
   @doc """
+  Builds a magic link login token for the given user without sending an email.
+
+  Useful when the user was already authenticated by another channel, such as
+  accepting an invitation.
+  """
+  def build_login_token(%User{} = user) do
+    {encoded_token, user_token} = UserToken.build_email_token(user, "login")
+    Repo.insert!(user_token)
+    encoded_token
+  end
+
+  @doc """
   Delivers the magic link login instructions to the given user.
   """
   def deliver_login_instructions(%User{} = user, magic_link_url_fun)
       when is_function(magic_link_url_fun, 1) do
-    {encoded_token, user_token} = UserToken.build_email_token(user, "login")
-    Repo.insert!(user_token)
-    UserNotifier.deliver_login_instructions(user, magic_link_url_fun.(encoded_token))
+    token = build_login_token(user)
+    UserNotifier.deliver_login_instructions(user, magic_link_url_fun.(token))
   end
 
   @doc """
@@ -283,7 +291,12 @@ defmodule Certfy.Accounts do
 
   ## Token helper
 
-  defp update_user_and_delete_all_tokens(changeset) do
+  @doc """
+  Updates the changeset and expires every token for the user.
+
+  Returns `{:ok, {user, expired_tokens}}` or `{:error, changeset}`.
+  """
+  def update_user_and_delete_all_tokens(changeset) do
     Repo.transact(fn ->
       with {:ok, user} <- Repo.update(changeset) do
         tokens_to_expire = Repo.all_by(UserToken, user_id: user.id)

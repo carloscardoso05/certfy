@@ -7,68 +7,75 @@ defmodule CertfyWeb.UserLive.Confirmation do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm">
-        <div class="text-center">
-          <.header>Bem-vindo(a), {@user.email}</.header>
-        </div>
+      <div class="mx-auto w-full max-w-md">
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <.header>
+              Bem-vindo(a), {@user.name}
+              <:subtitle>Confirme seu acesso para continuar.</:subtitle>
+            </.header>
 
-        <.form
-          :if={!@user.confirmed_at}
-          for={@form}
-          id="confirmation_form"
-          phx-mounted={JS.focus_first()}
-          phx-submit="submit"
-          action={~p"/users/log-in?_action=confirmed"}
-          phx-trigger-action={@trigger_submit}
-        >
-          <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
-          <.button
-            name={@form[:remember_me].name}
-            value="true"
-            phx-disable-with="Confirmando..."
-            class="btn btn-primary w-full"
-          >
-            Confirmar e manter conectado
-          </.button>
-
-          <.button phx-disable-with="Confirmando..." class="btn btn-primary btn-soft w-full mt-2">
-            Confirmar e entrar apenas desta vez
-          </.button>
-        </.form>
-
-        <.form
-          :if={@user.confirmed_at}
-          for={@form}
-          id="login_form"
-          phx-submit="submit"
-          phx-mounted={JS.focus_first()}
-          action={~p"/users/log-in"}
-          phx-trigger-action={@trigger_submit}
-        >
-          <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
-          <%= if @current_scope do %>
-            <.button phx-disable-with="Entrando..." class="btn btn-primary w-full">
-              Entrar
-            </.button>
-          <% else %>
-            <.button
-              name={@form[:remember_me].name}
-              value="true"
-              phx-disable-with="Entrando..."
-              class="btn btn-primary w-full"
+            <.form
+              :if={!@user.confirmed_at}
+              for={@form}
+              id="confirmation_form"
+              phx-mounted={JS.focus_first()}
+              phx-submit="submit"
+              action={~p"/users/log-in?_action=confirmed"}
+              phx-trigger-action={@trigger_submit}
+              class="space-y-2"
             >
-              Manter conectado neste dispositivo
-            </.button>
+              <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
+              <.button
+                name={@form[:remember_me].name}
+                value="true"
+                phx-disable-with="Confirmando..."
+                class="btn btn-primary w-full"
+              >
+                Confirmar e manter conectado
+              </.button>
 
-            <.button phx-disable-with="Entrando..." class="btn btn-primary btn-soft w-full mt-2">
-              Entrar apenas desta vez
-            </.button>
-          <% end %>
-        </.form>
+              <.button phx-disable-with="Confirmando..." class="btn btn-primary btn-soft w-full">
+                Confirmar e entrar apenas desta vez
+              </.button>
+            </.form>
 
-        <p :if={!@user.confirmed_at} class="alert alert-outline mt-8">
-          Dica: se preferir usar senha, você pode habilitá-la nas configurações da conta.
-        </p>
+            <.form
+              :if={@user.confirmed_at}
+              for={@form}
+              id="login_form"
+              phx-submit="submit"
+              phx-mounted={JS.focus_first()}
+              action={~p"/users/log-in"}
+              phx-trigger-action={@trigger_submit}
+              class="space-y-2"
+            >
+              <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
+              <%= if @current_scope do %>
+                <.button phx-disable-with="Entrando..." class="btn btn-primary w-full">
+                  Entrar
+                </.button>
+              <% else %>
+                <.button
+                  name={@form[:remember_me].name}
+                  value="true"
+                  phx-disable-with="Entrando..."
+                  class="btn btn-primary w-full"
+                >
+                  Manter conectado neste dispositivo
+                </.button>
+
+                <.button phx-disable-with="Entrando..." class="btn btn-primary btn-soft w-full">
+                  Entrar apenas desta vez
+                </.button>
+              <% end %>
+            </.form>
+
+            <p :if={!@user.confirmed_at} class="alert alert-soft mt-4">
+              Dica: se preferir usar senha, você pode habilitá-la nas configurações da conta.
+            </p>
+          </div>
+        </div>
       </div>
     </Layouts.app>
     """

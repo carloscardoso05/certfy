@@ -4,7 +4,7 @@ defmodule Certfy.AccountsTest do
   alias Certfy.Accounts
 
   import Certfy.AccountsFixtures
-  alias Certfy.Accounts.{User, UserToken}
+  alias Certfy.Accounts.{Admin, Scope, User, UserToken}
 
   describe "get_user_by_email/1" do
     test "does not return the user if the email does not exist" do
@@ -14,24 +14,6 @@ defmodule Certfy.AccountsTest do
     test "returns the user if the email exists" do
       %{id: id} = user = user_fixture()
       assert %User{id: ^id} = Accounts.get_user_by_email(user.email)
-    end
-  end
-
-  describe "get_user_by_email_and_password/2" do
-    test "does not return the user if the email does not exist" do
-      refute Accounts.get_user_by_email_and_password("unknown@example.com", "hello world!")
-    end
-
-    test "does not return the user if the password is not valid" do
-      user = user_fixture() |> set_password()
-      refute Accounts.get_user_by_email_and_password(user.email, "invalid")
-    end
-
-    test "returns the user if the email and password are valid" do
-      %{id: id} = user = user_fixture() |> set_password()
-
-      assert %User{id: ^id} =
-               Accounts.get_user_by_email_and_password(user.email, valid_user_password())
     end
   end
 
@@ -77,13 +59,13 @@ defmodule Certfy.AccountsTest do
       assert "has already been taken" in errors_on(changeset).email
     end
 
-    test "registers users without password" do
+    test "registers users with name and email" do
       email = unique_user_email()
       {:ok, user} = Accounts.register_user(valid_user_attributes(email: email))
       assert user.email == email
-      assert is_nil(user.hashed_password)
+      assert is_binary(user.name)
+      assert user.role == :USER
       assert is_nil(user.confirmed_at)
-      assert is_nil(user.password)
     end
   end
 
@@ -177,78 +159,6 @@ defmodule Certfy.AccountsTest do
 
       assert Repo.get!(User, user.id).email == user.email
       assert Repo.get_by(UserToken, user_id: user.id)
-    end
-  end
-
-  describe "change_user_password/3" do
-    test "returns a user changeset" do
-      assert %Ecto.Changeset{} = changeset = Accounts.change_user_password(%User{})
-      assert changeset.required == [:password]
-    end
-
-    test "allows fields to be set" do
-      changeset =
-        Accounts.change_user_password(
-          %User{},
-          %{
-            "password" => "new valid password"
-          },
-          hash_password: false
-        )
-
-      assert changeset.valid?
-      assert get_change(changeset, :password) == "new valid password"
-      assert is_nil(get_change(changeset, :hashed_password))
-    end
-  end
-
-  describe "update_user_password/2" do
-    setup do
-      %{user: user_fixture()}
-    end
-
-    test "validates password", %{user: user} do
-      {:error, changeset} =
-        Accounts.update_user_password(user, %{
-          password: "not valid",
-          password_confirmation: "another"
-        })
-
-      assert %{
-               password: ["should be at least 12 character(s)"],
-               password_confirmation: ["does not match password"]
-             } = errors_on(changeset)
-    end
-
-    test "validates maximum values for password for security", %{user: user} do
-      too_long = String.duplicate("db", 100)
-
-      {:error, changeset} =
-        Accounts.update_user_password(user, %{password: too_long})
-
-      assert "should be at most 72 character(s)" in errors_on(changeset).password
-    end
-
-    test "updates the password", %{user: user} do
-      {:ok, {user, expired_tokens}} =
-        Accounts.update_user_password(user, %{
-          password: "new valid password"
-        })
-
-      assert expired_tokens == []
-      assert is_nil(user.password)
-      assert Accounts.get_user_by_email_and_password(user.email, "new valid password")
-    end
-
-    test "deletes all tokens for the given user", %{user: user} do
-      _ = Accounts.generate_user_session_token(user)
-
-      {:ok, {_, _}} =
-        Accounts.update_user_password(user, %{
-          password: "new valid password"
-        })
-
-      refute Repo.get_by(UserToken, user_id: user.id)
     end
   end
 
@@ -349,16 +259,6 @@ defmodule Certfy.AccountsTest do
       # one time use only
       assert {:error, :not_found} = Accounts.login_user_by_magic_link(encoded_token)
     end
-
-    test "raises when unconfirmed user has password set" do
-      user = unconfirmed_user_fixture()
-      {1, nil} = Repo.update_all(User, set: [hashed_password: "hashed"])
-      {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
-
-      assert_raise RuntimeError, ~r/magic link log in is not allowed/, fn ->
-        Accounts.login_user_by_magic_link(encoded_token)
-      end
-    end
   end
 
   describe "delete_user_session_token/1" do
@@ -389,9 +289,98 @@ defmodule Certfy.AccountsTest do
     end
   end
 
-  describe "inspect/2 for the User module" do
-    test "does not include password" do
-      refute inspect(%User{password: "123456"}) =~ "password: \"123456\""
+  describe "invitations" do
+    setup do
+      %{admin_scope: admin_scope_fixture()}
+    end
+
+    test "invite_user/3 creates a valid invitation", %{admin_scope: scope} do
+      email = unique_user_email()
+
+      %{invitation: invitation, token: token} =
+        invitation_fixture(scope, %{email: email})
+
+      assert invitation.email == email
+      assert invitation.expires_at
+      assert Accounts.get_invitation_by_token(token).id == invitation.id
+    end
+
+    test "accept_invitation/2 creates a confirmed user", %{admin_scope: scope} do
+      %{token: token, invitation: invitation} = invitation_fixture(scope)
+
+      assert {:ok, user} = Accounts.accept_invitation(token, %{name: "Maria"})
+
+      assert user.email == invitation.email
+      assert user.name == "Maria"
+      assert user.confirmed_at
+      assert user.role == :USER
+      refute Accounts.get_invitation_by_token(token)
+    end
+
+    test "accept_invitation/2 rejects an invalid token", %{admin_scope: _scope} do
+      assert Accounts.accept_invitation("invalid", %{name: "Maria"}) ==
+               {:error, :invalid_invitation}
+    end
+  end
+
+  describe "admin user management" do
+    setup do
+      admin = admin_fixture()
+      %{admin: admin, scope: Scope.for_user(admin)}
+    end
+
+    test "list_users/1 lists users", %{scope: scope, admin: admin} do
+      other = user_fixture()
+
+      ids =
+        scope
+        |> Admin.list_users()
+        |> Enum.map(& &1.id)
+        |> Enum.sort()
+
+      assert ids == Enum.sort([admin.id, other.id])
+    end
+
+    test "deactivate_user/2 blocks sessions and login", %{scope: scope} do
+      user = user_fixture()
+      token = Accounts.generate_user_session_token(user)
+
+      assert {:ok, {deactivated, _tokens}} = Admin.deactivate_user(scope, user)
+
+      assert deactivated.deactivated_at
+      refute Accounts.get_user_by_session_token(token)
+    end
+
+    test "reactivate_user/2 clears deactivated_at", %{scope: scope} do
+      user = user_fixture()
+
+      {:ok, {user, _tokens}} = Admin.deactivate_user(scope, user)
+      assert {:ok, reactivated} = Admin.reactivate_user(scope, user)
+
+      refute reactivated.deactivated_at
+    end
+
+    test "change_role/2 promotes a user", %{scope: scope} do
+      user = user_fixture()
+
+      assert {:ok, user} = Admin.change_role(scope, user, :ADMIN)
+      assert user.role == :ADMIN
+    end
+
+    test "cannot deactivate self", %{scope: scope, admin: admin} do
+      assert Admin.deactivate_user(scope, admin) == {:error, :cannot_modify_self}
+    end
+
+    test "cannot demote self", %{scope: scope, admin: admin} do
+      assert Admin.change_role(scope, admin, :USER) == {:error, :cannot_modify_self}
+    end
+
+    test "regular users cannot manage", %{admin: admin} do
+      assert_raise ArgumentError, fn ->
+        Admin.list_users(Scope.for_user(user_fixture()))
+      end
+
+      assert admin.role == :ADMIN
     end
   end
 end

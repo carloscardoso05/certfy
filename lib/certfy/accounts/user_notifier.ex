@@ -81,4 +81,26 @@ defmodule Certfy.Accounts.UserNotifier do
     ==============================
     """)
   end
+
+  @doc """
+  Delivers an invitation so the person can create an account.
+  """
+  def deliver_invitation_instructions(invitation, url, invited_by) do
+    deliver(invitation.email, "Convite para acessar o Certfy", """
+
+    ==============================
+
+    Olá,
+
+    #{invited_by.name} te convidou para acessar o Certfy.
+
+    Crie sua conta acessando o link abaixo (válido por 7 dias):
+
+    #{url}
+
+    Se você não esperava este convite, por favor ignore este e-mail.
+
+    ==============================
+    """)
+  end
 end

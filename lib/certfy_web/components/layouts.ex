@@ -35,42 +35,92 @@ defmodule CertfyWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
+    <header class="sticky top-0 z-40 border-b border-base-300 bg-base-100/90 backdrop-blur">
+      <div class="navbar mx-auto w-full max-w-7xl gap-2 px-4 sm:px-6 lg:px-8">
+        <div class="navbar-start gap-1">
+          <div class="dropdown lg:hidden">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle" aria-label="Menu">
+              <.icon name="hero-bars-3" class="size-5" />
+            </div>
+            <ul
+              tabindex="0"
+              class="dropdown-content menu z-50 mt-2 w-56 rounded-box bg-base-100 p-2 shadow-lg"
+            >
+              <li><.link navigate={~p"/events"}>Eventos</.link></li>
+              <li :if={admin?(@current_scope)}>
+                <.link navigate={~p"/users"}>Usuários</.link>
+              </li>
+            </ul>
+          </div>
 
-      <div class="flex-none">
-        <ul class="flex px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Site</a>
-          </li>
+          <.link navigate={~p"/events"} class="flex items-center gap-2 px-1">
+            <img src={~p"/images/logo.svg"} width="32" alt="Certfy" />
+            <span class="text-lg font-bold tracking-tight">Certfy</span>
+          </.link>
+        </div>
 
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
+        <div class="navbar-center hidden lg:flex">
+          <ul class="menu menu-horizontal gap-1 px-1">
+            <li><.link navigate={~p"/events"}>Eventos</.link></li>
+            <li :if={admin?(@current_scope)}>
+              <.link navigate={~p"/users"}>Usuários</.link>
+            </li>
+          </ul>
+        </div>
 
-          <li>
-            <.theme_toggle />
-          </li>
+        <div class="navbar-end gap-1">
+          <.theme_toggle />
 
-          <li>
-            <a href="https://phoenix.hexdocs.pm/overview.html" class="btn btn-primary">
-              Começar <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
+          <div :if={@current_scope} class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost gap-2 px-2">
+              <div class="avatar avatar-placeholder">
+                <div class="w-8 rounded-full bg-primary text-primary-content">
+                  <span class="text-xs font-semibold">{initials(@current_scope.user)}</span>
+                </div>
+              </div>
+              <span class="hidden max-w-32 truncate text-sm sm:inline">
+                {@current_scope.user.name}
+              </span>
+              <.icon name="hero-chevron-down" class="size-4 opacity-60" />
+            </div>
+            <ul
+              tabindex="0"
+              class="dropdown-content menu z-50 mt-3 w-64 rounded-box bg-base-100 p-2 shadow-lg"
+            >
+              <li class="menu-title">
+                <span class="block max-w-56 truncate text-xs font-normal text-base-content/60">
+                  {@current_scope.user.email}
+                </span>
+                <span class={role_badge(@current_scope.user)}>{role_label(@current_scope.user)}</span>
+              </li>
+              <li>
+                <.link navigate={~p"/users/settings"}>
+                  <.icon name="hero-cog-6-tooth" class="size-4" /> Configurações
+                </.link>
+              </li>
+              <li>
+                <.link href={~p"/users/log-out"} method="delete">
+                  <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Sair
+                </.link>
+              </li>
+            </ul>
+          </div>
+
+          <.link
+            :if={is_nil(@current_scope)}
+            navigate={~p"/users/log-in"}
+            class="btn btn-primary btn-sm"
+          >
+            Entrar
+          </.link>
+        </div>
       </div>
     </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
-      </div>
+    <main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {render_slot(@inner_block)}
     </main>
+
     <.flash_group flash={@flash} />
     """
   end
@@ -130,32 +180,50 @@ defmodule CertfyWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 [[data-theme-source=system]_&]:!left-0 transition-[left]" />
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
+    <div class="dropdown dropdown-end">
+      <div tabindex="0" role="button" class="btn btn-ghost btn-circle" aria-label="Tema">
+        <.icon name="hero-sun" class="size-5" />
+      </div>
+      <ul
+        tabindex="0"
+        class="dropdown-content menu z-50 mt-3 w-44 rounded-box bg-base-100 p-2 shadow-lg"
       >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
+        <li>
+          <button type="button" phx-click={JS.dispatch("phx:set-theme")} data-phx-theme="system">
+            <.icon name="hero-computer-desktop" class="size-4" /> Sistema
+          </button>
+        </li>
+        <li>
+          <button type="button" phx-click={JS.dispatch("phx:set-theme")} data-phx-theme="light">
+            <.icon name="hero-sun" class="size-4" /> Claro
+          </button>
+        </li>
+        <li>
+          <button type="button" phx-click={JS.dispatch("phx:set-theme")} data-phx-theme="dark">
+            <.icon name="hero-moon" class="size-4" /> Escuro
+          </button>
+        </li>
+      </ul>
     </div>
     """
+  end
+
+  defp admin?(nil), do: false
+  defp admin?(scope), do: Certfy.Accounts.Scope.admin?(scope)
+
+  defp role_label(%{role: :ADMIN}), do: "Administrador"
+  defp role_label(_user), do: "Usuário"
+
+  defp role_badge(%{role: :ADMIN}), do: "badge badge-primary badge-sm"
+  defp role_badge(_user), do: "badge badge-ghost badge-sm"
+
+  defp initials(%{name: name, email: email}) do
+    source = if is_binary(name) and String.trim(name) != "", do: name, else: email
+
+    source
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map_join(&String.first/1)
+    |> String.upcase()
   end
 end

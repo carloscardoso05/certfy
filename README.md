@@ -7,6 +7,14 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
+## Access model
+
+- There is no public sign-up. Admins invite people from the **Usuários** page (`/users`).
+- Login is passwordless: enter your email at `/users/log-in` and open the link sent to your inbox.
+- The first admin is created by `mix run priv/repo/seeds.exs` (email from `CERTFY_ADMIN_EMAIL`, default `admin@certfy.local`).
+- In development, sent emails are available at `/dev/mailbox`.
+- Admins can deactivate/reactivate users and change roles between `USER` and `ADMIN`.
+
 ## Object storage (RustFS)
 
 Event templates are stored in RustFS, an S3-compatible service. Start the local

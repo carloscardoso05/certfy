@@ -13,7 +13,7 @@ defmodule CertfyWeb.UserLive.SettingsTest do
         |> live(~p"/users/settings")
 
       assert html =~ "Alterar e-mail"
-      assert html =~ "Salvar senha"
+      assert html =~ "Configurações da conta"
     end
 
     test "redirects if user is not logged in", %{conn: conn} do
@@ -34,6 +34,36 @@ defmodule CertfyWeb.UserLive.SettingsTest do
         |> follow_redirect(conn, ~p"/users/log-in")
 
       assert conn.resp_body =~ "Você precisa se autenticar novamente para acessar esta página."
+    end
+  end
+
+  describe "update name form" do
+    setup %{conn: conn} do
+      user = user_fixture()
+      %{conn: log_in_user(conn, user), user: user}
+    end
+
+    test "updates the user name", %{conn: conn, user: user} do
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      result =
+        lv
+        |> form("#name_form", %{"user" => %{"name" => "Maria Silva"}})
+        |> render_submit()
+
+      assert result =~ "Nome atualizado com sucesso."
+      assert Accounts.get_user!(user.id).name == "Maria Silva"
+    end
+
+    test "renders errors for invalid name", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      result =
+        lv
+        |> form("#name_form", %{"user" => %{"name" => ""}})
+        |> render_submit()
+
+      assert result =~ "não pode ficar em branco"
     end
   end
 
@@ -86,77 +116,6 @@ defmodule CertfyWeb.UserLive.SettingsTest do
 
       assert result =~ "Alterar e-mail"
       assert result =~ "não mudou"
-    end
-  end
-
-  describe "update password form" do
-    setup %{conn: conn} do
-      user = user_fixture()
-      %{conn: log_in_user(conn, user), user: user}
-    end
-
-    test "updates the user password", %{conn: conn, user: user} do
-      new_password = valid_user_password()
-
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
-
-      form =
-        form(lv, "#password_form", %{
-          "user" => %{
-            "email" => user.email,
-            "password" => new_password,
-            "password_confirmation" => new_password
-          }
-        })
-
-      render_submit(form)
-
-      new_password_conn = follow_trigger_action(form, conn)
-
-      assert redirected_to(new_password_conn) == ~p"/users/settings"
-
-      assert get_session(new_password_conn, :user_token) != get_session(conn, :user_token)
-
-      assert Phoenix.Flash.get(new_password_conn.assigns.flash, :info) =~
-               "Senha atualizada com sucesso"
-
-      assert Accounts.get_user_by_email_and_password(user.email, new_password)
-    end
-
-    test "renders errors with invalid data (phx-change)", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
-
-      result =
-        lv
-        |> element("#password_form")
-        |> render_change(%{
-          "user" => %{
-            "password" => "too short",
-            "password_confirmation" => "does not match"
-          }
-        })
-
-      assert result =~ "Salvar senha"
-      assert result =~ "deve ter no mínimo 12 caracteres"
-      assert result =~ "não confere com a senha"
-    end
-
-    test "renders errors with invalid data (phx-submit)", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
-
-      result =
-        lv
-        |> form("#password_form", %{
-          "user" => %{
-            "password" => "too short",
-            "password_confirmation" => "does not match"
-          }
-        })
-        |> render_submit()
-
-      assert result =~ "Salvar senha"
-      assert result =~ "deve ter no mínimo 12 caracteres"
-      assert result =~ "não confere com a senha"
     end
   end
 

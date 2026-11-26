@@ -4,65 +4,82 @@ defmodule CertfyWeb.UserLive.Settings do
   on_mount {CertfyWeb.UserAuth, :require_sudo_mode}
 
   alias Certfy.Accounts
+  alias Certfy.Accounts.Scope
 
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="text-center">
+      <div class="mx-auto w-full max-w-2xl space-y-6">
         <.header>
           Configurações da conta
-          <:subtitle>Gerencie o e-mail e a senha da sua conta</:subtitle>
+          <:subtitle>Gerencie seus dados de acesso.</:subtitle>
         </.header>
-      </div>
 
-      <.form for={@email_form} id="email_form" phx-submit="update_email" phx-change="validate_email">
-        <.input
-          field={@email_form[:email]}
-          type="email"
-          label="E-mail"
-          autocomplete="username"
-          spellcheck="false"
-          required
-        />
-        <.button variant="primary" phx-disable-with="Alterando...">Alterar e-mail</.button>
-      </.form>
-      <div class="divider" />
-      <.form
-        for={@password_form}
-        id="password_form"
-        action={~p"/users/update-password"}
-        method="post"
-        phx-change="validate_password"
-        phx-submit="update_password"
-        phx-trigger-action={@trigger_submit}
-      >
-        <input
-          name={@password_form[:email].name}
-          type="hidden"
-          id="hidden_user_email"
-          spellcheck="false"
-          value={@current_email}
-        />
-        <.input
-          field={@password_form[:password]}
-          type="password"
-          label="Nova senha"
-          autocomplete="new-password"
-          spellcheck="false"
-          required
-        />
-        <.input
-          field={@password_form[:password_confirmation]}
-          type="password"
-          label="Confirmar nova senha"
-          autocomplete="new-password"
-          spellcheck="false"
-        />
-        <.button variant="primary" phx-disable-with="Salvando...">
-          Salvar senha
-        </.button>
-      </.form>
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="card-title text-base">Perfil</h2>
+                <p class="text-sm text-base-content/70">
+                  Seu nome aparece na barra de navegação.
+                </p>
+              </div>
+              <span class={role_badge(@current_scope.user.role)}>
+                {role_label(@current_scope.user.role)}
+              </span>
+            </div>
+
+            <.form
+              for={@name_form}
+              id="name_form"
+              phx-submit="update_name"
+              phx-change="validate_name"
+              class="mt-2 space-y-3"
+            >
+              <.input
+                field={@name_form[:name]}
+                type="text"
+                label="Nome"
+                autocomplete="name"
+                required
+              />
+              <.button variant="primary" phx-disable-with="Salvando...">Salvar nome</.button>
+            </.form>
+
+            <p class="mt-2 text-xs text-base-content/60">
+              E-mail: {@current_scope.user.email}
+            </p>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title text-base">E-mail</h2>
+            <p class="text-sm text-base-content/70">
+              Alterar o e-mail exige confirmação no novo endereço.
+            </p>
+
+            <.form
+              for={@email_form}
+              id="email_form"
+              phx-submit="update_email"
+              phx-change="validate_email"
+              class="mt-2 space-y-3"
+            >
+              <.input
+                field={@email_form[:email]}
+                type="email"
+                label="E-mail"
+                autocomplete="username"
+                spellcheck="false"
+                required
+              />
+              <.button variant="primary" phx-disable-with="Alterando...">Alterar e-mail</.button>
+            </.form>
+          </div>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -84,16 +101,42 @@ defmodule CertfyWeb.UserLive.Settings do
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user
     email_changeset = Accounts.change_user_email(user, %{}, validate_unique: false)
-    password_changeset = Accounts.change_user_password(user, %{}, hash_password: false)
 
     socket =
       socket
-      |> assign(:current_email, user.email)
+      |> assign(:name_form, to_form(Accounts.change_user_name(user)))
       |> assign(:email_form, to_form(email_changeset))
-      |> assign(:password_form, to_form(password_changeset))
-      |> assign(:trigger_submit, false)
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_event("validate_name", params, socket) do
+    %{"user" => user_params} = params
+
+    name_form =
+      socket.assigns.current_scope.user
+      |> Accounts.change_user_name(user_params)
+      |> Map.put(:action, :validate)
+      |> to_form()
+
+    {:noreply, assign(socket, name_form: name_form)}
+  end
+
+  def handle_event("update_name", params, socket) do
+    %{"user" => user_params} = params
+
+    case Accounts.update_user_name(socket.assigns.current_scope.user, user_params) do
+      {:ok, user} ->
+        {:noreply,
+         socket
+         |> assign(:current_scope, Scope.for_user(user))
+         |> assign(:name_form, to_form(Accounts.change_user_name(user)))
+         |> put_flash(:info, "Nome atualizado com sucesso.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, :name_form, to_form(changeset, action: :insert))}
+    end
   end
 
   @impl true
@@ -130,29 +173,9 @@ defmodule CertfyWeb.UserLive.Settings do
     end
   end
 
-  def handle_event("validate_password", params, socket) do
-    %{"user" => user_params} = params
+  defp role_label(:ADMIN), do: "Admin"
+  defp role_label(_role), do: "Usuário"
 
-    password_form =
-      socket.assigns.current_scope.user
-      |> Accounts.change_user_password(user_params, hash_password: false)
-      |> Map.put(:action, :validate)
-      |> to_form()
-
-    {:noreply, assign(socket, password_form: password_form)}
-  end
-
-  def handle_event("update_password", params, socket) do
-    %{"user" => user_params} = params
-    user = socket.assigns.current_scope.user
-    true = Accounts.sudo_mode?(user)
-
-    case Accounts.change_user_password(user, user_params) do
-      %{valid?: true} = changeset ->
-        {:noreply, assign(socket, trigger_submit: true, password_form: to_form(changeset))}
-
-      changeset ->
-        {:noreply, assign(socket, password_form: to_form(changeset, action: :insert))}
-    end
-  end
+  defp role_badge(:ADMIN), do: "badge badge-primary badge-sm"
+  defp role_badge(_role), do: "badge badge-ghost badge-sm"
 end

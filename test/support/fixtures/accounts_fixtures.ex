@@ -10,10 +10,10 @@ defmodule Certfy.AccountsFixtures do
   alias Certfy.Accounts.Scope
 
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
-  def valid_user_password, do: "hello world!"
 
   def valid_user_attributes(attrs \\ %{}) do
     Enum.into(attrs, %{
+      name: "User #{System.unique_integer([:positive])}",
       email: unique_user_email()
     })
   end
@@ -46,15 +46,44 @@ defmodule Certfy.AccountsFixtures do
     user_scope_fixture(user)
   end
 
+  def admin_fixture(attrs \\ %{}) do
+    user = user_fixture(attrs)
+
+    {:ok, admin} =
+      user
+      |> Certfy.Accounts.User.role_changeset(:ADMIN)
+      |> Certfy.Repo.update()
+
+    admin
+  end
+
+  def admin_scope_fixture do
+    admin = admin_fixture()
+    Scope.for_user(admin)
+  end
+
   def user_scope_fixture(user) do
     Scope.for_user(user)
   end
 
-  def set_password(user) do
-    {:ok, {user, _expired_tokens}} =
-      Accounts.update_user_password(user, %{password: valid_user_password()})
+  def invitation_fixture(admin_scope, attrs \\ %{}) do
+    email = Map.get(attrs, :email, unique_user_email())
+    parent = self()
 
-    user
+    {:ok, invitation} =
+      Certfy.Accounts.Admin.invite_user(admin_scope, email, fn token ->
+        send(parent, {:invitation_token, token})
+        "http://localhost/users/register/#{token}"
+      end)
+
+    token =
+      receive do
+        {:invitation_token, token} -> token
+      after
+        0 -> raise "invitation token was not built"
+      end
+
+    %{invitation: invitation, token: token}
   end
 
   def extract_user_token(fun) do

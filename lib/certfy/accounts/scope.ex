@@ -30,4 +30,10 @@ defmodule Certfy.Accounts.Scope do
   end
 
   def for_user(nil), do: nil
+
+  @doc """
+  Returns true when the scoped user is an admin.
+  """
+  def admin?(%__MODULE__{user: %User{role: :ADMIN}}), do: true
+  def admin?(_scope), do: false
 end

@@ -15,45 +15,67 @@ defmodule CertfyWeb.EventLive.Form do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         {@page_title}
-        <:subtitle>Use este formulário para gerenciar os eventos do seu banco de dados.</:subtitle>
+        <:subtitle>Preencha os dados do evento e, se quiser, envie o template.</:subtitle>
       </.header>
 
-      <.form
-        for={@form}
-        id="event-form"
-        phx-change="validate"
-        phx-submit="save"
-        phx-drop-target={@uploads.template.ref}
-      >
-        <.input field={@form[:name]} type="text" label="Nome" />
-        <div class="mt-4">
-          <label class="label" for={@uploads.template.ref}>Arquivo de template (.pptx)</label>
-          <.live_file_input upload={@uploads.template} />
-          <p :if={@event.template_path} class="mt-2 text-sm">
-            Template já enviado.
-          </p>
-
-          <p :for={error <- upload_errors(@uploads.template)} class="mt-2 text-sm text-error">
-            {upload_error_to_string(error)}
-          </p>
-
-          <div :for={entry <- @uploads.template.entries}>
-            <p class="mt-2 text-sm">{entry.client_name} ({entry.progress}%)</p>
-
-            <p
-              :for={error <- upload_errors(@uploads.template, entry)}
-              class="mt-2 text-sm text-error"
+      <div class="mx-auto w-full max-w-2xl">
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <.form
+              for={@form}
+              id="event-form"
+              phx-change="validate"
+              phx-submit="save"
+              phx-drop-target={@uploads.template.ref}
+              class="space-y-6"
             >
-              {upload_error_to_string(error)}
-            </p>
+              <section>
+                <h2 class="mb-2 text-sm font-semibold text-base-content/70">
+                  Informações do evento
+                </h2>
+                <.input field={@form[:name]} type="text" label="Nome" required />
+              </section>
+
+              <section class="rounded-box border border-dashed border-base-300 p-4">
+                <label class="label" for={@uploads.template.ref}>
+                  Arquivo de template (.pptx)
+                </label>
+                <.live_file_input
+                  upload={@uploads.template}
+                  class="file-input file-input-bordered w-full"
+                />
+                <p :if={@event.template_path} class="mt-2 text-sm text-base-content/70">
+                  Template já enviado.
+                </p>
+
+                <p :for={error <- upload_errors(@uploads.template)} class="mt-2 text-sm text-error">
+                  {upload_error_to_string(error)}
+                </p>
+
+                <div :for={entry <- @uploads.template.entries}>
+                  <p class="mt-2 text-sm">{entry.client_name} ({entry.progress}%)</p>
+
+                  <p
+                    :for={error <- upload_errors(@uploads.template, entry)}
+                    class="mt-2 text-sm text-error"
+                  >
+                    {upload_error_to_string(error)}
+                  </p>
+                </div>
+              </section>
+
+              <footer class="flex flex-wrap justify-end gap-2">
+                <.button navigate={return_path(@current_scope, @return_to, @event)}>
+                  Cancelar
+                </.button>
+                <.button phx-disable-with="Salvando..." variant="primary">
+                  Salvar evento
+                </.button>
+              </footer>
+            </.form>
           </div>
         </div>
-
-        <footer>
-          <.button phx-disable-with="Salvando..." variant="primary">Salvar evento</.button>
-          <.button navigate={return_path(@current_scope, @return_to, @event)}>Cancelar</.button>
-        </footer>
-      </.form>
+      </div>
     </Layouts.app>
     """
   end

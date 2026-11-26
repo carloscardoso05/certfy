@@ -8,7 +8,8 @@ defmodule CertfyWeb.ParticipantLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Participantes
+        Participantes do lote {@batch.name}
+        <:subtitle>Pessoas que receberão os certificados deste lote.</:subtitle>
         <:actions>
           <.button
             variant="primary"
@@ -19,44 +20,55 @@ defmodule CertfyWeb.ParticipantLive.Index do
         </:actions>
       </.header>
 
-      <.table
-        id="participants"
-        rows={@streams.participants}
-        row_click={
-          fn {_id, participant} ->
-            JS.navigate(~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}")
-          end
-        }
-      >
-        <:col :let={{_id, participant}} label="Nome">{participant.name}</:col>
-
-        <:col :let={{_id, participant}} label="E-mail">{participant.email}</:col>
-
-        <:col :let={{_id, participant}} label="Dados adicionais">
-          {map_size(participant.extra_data || %{})}
-        </:col>
-
-        <:action :let={{_id, participant}}>
-          <div class="sr-only">
-            <.link navigate={~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}"}>
-              Ver
-            </.link>
+      <div class="card bg-base-100 shadow-sm">
+        <div class="card-body p-0">
+          <div class="overflow-x-auto">
+            <.table
+              id="participants"
+              rows={@streams.participants}
+              row_click={
+                fn {_id, participant} ->
+                  JS.navigate(~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}")
+                end
+              }
+            >
+              <:col :let={{_id, participant}} label="Nome">
+                <span class="font-medium">{participant.name}</span>
+              </:col>
+              <:col :let={{_id, participant}} label="E-mail">{participant.email}</:col>
+              <:col :let={{_id, participant}} label="Dados adicionais">
+                <span class="badge badge-ghost badge-sm">
+                  {map_size(participant.extra_data || %{})}
+                </span>
+              </:col>
+              <:action :let={{_id, participant}}>
+                <div class="sr-only">
+                  <.link navigate={
+                    ~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}"
+                  }>
+                    Ver
+                  </.link>
+                </div>
+                <.link
+                  navigate={~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}/edit"}
+                  class="btn btn-ghost btn-xs"
+                >
+                  Editar
+                </.link>
+              </:action>
+              <:action :let={{id, participant}}>
+                <.link
+                  phx-click={JS.push("delete", value: %{id: participant.id}) |> hide("##{id}")}
+                  data-confirm="Tem certeza?"
+                  class="btn btn-ghost btn-xs text-error"
+                >
+                  Excluir
+                </.link>
+              </:action>
+            </.table>
           </div>
-
-          <.link navigate={~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}/edit"}>
-            Editar
-          </.link>
-        </:action>
-
-        <:action :let={{id, participant}}>
-          <.link
-            phx-click={JS.push("delete", value: %{id: participant.id}) |> hide("##{id}")}
-            data-confirm="Tem certeza?"
-          >
-            Excluir
-          </.link>
-        </:action>
-      </.table>
+        </div>
+      </div>
     </Layouts.app>
     """
   end

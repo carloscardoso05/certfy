@@ -9,7 +9,7 @@ defmodule CertfyWeb.ParticipantLive.Show do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         Participante {@participant.id}
-        <:subtitle>Este é um registro de participante do seu banco de dados.</:subtitle>
+        <:subtitle>Dados do participante no lote {@batch.name}.</:subtitle>
 
         <:actions>
           <.button navigate={~p"/events/#{@event}/batches/#{@batch}/participants"}>
@@ -27,13 +27,20 @@ defmodule CertfyWeb.ParticipantLive.Show do
         </:actions>
       </.header>
 
-      <.list>
-        <:item title="Nome">{@participant.name}</:item>
-
-        <:item title="E-mail">{@participant.email}</:item>
-
-        <:item title="Dados adicionais">{map_size(@participant.extra_data || %{})}</:item>
-      </.list>
+      <div class="stats stats-vertical w-full border border-base-300 bg-base-100 shadow-sm lg:stats-horizontal">
+        <div class="stat">
+          <div class="stat-title">Nome</div>
+          <div class="stat-value text-lg">{@participant.name}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">E-mail</div>
+          <div class="stat-value text-base">{@participant.email}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Dados adicionais</div>
+          <div class="stat-value text-lg">{map_size(@participant.extra_data || %{})}</div>
+        </div>
+      </div>
     </Layouts.app>
     """
   end

@@ -8,7 +8,8 @@ defmodule CertfyWeb.BatchLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Lotes
+        Lotes do evento {@event.name}
+        <:subtitle>Organize os participantes em lotes.</:subtitle>
         <:actions>
           <.button variant="primary" navigate={~p"/events/#{@event}/batches/new"}>
             <.icon name="hero-plus" /> Novo lote
@@ -16,33 +17,44 @@ defmodule CertfyWeb.BatchLive.Index do
         </:actions>
       </.header>
 
-      <.table
-        id="batches"
-        rows={@streams.batches}
-        row_click={fn {_id, batch} -> JS.navigate(~p"/events/#{@event}/batches/#{batch}") end}
-      >
-        <:col :let={{_id, batch}} label="Nome">{batch.name}</:col>
-
-        <:col :let={{_id, batch}} label="Dados adicionais">
-          {map_size(batch.extra_data || %{})}
-        </:col>
-
-        <:action :let={{_id, batch}}>
-          <div class="sr-only">
-            <.link navigate={~p"/events/#{@event}/batches/#{batch}"}>Ver</.link>
+      <div class="card bg-base-100 shadow-sm">
+        <div class="card-body p-0">
+          <div class="overflow-x-auto">
+            <.table
+              id="batches"
+              rows={@streams.batches}
+              row_click={fn {_id, batch} -> JS.navigate(~p"/events/#{@event}/batches/#{batch}") end}
+            >
+              <:col :let={{_id, batch}} label="Nome">
+                <span class="font-medium">{batch.name}</span>
+              </:col>
+              <:col :let={{_id, batch}} label="Dados adicionais">
+                <span class="badge badge-ghost badge-sm">{map_size(batch.extra_data || %{})}</span>
+              </:col>
+              <:action :let={{_id, batch}}>
+                <div class="sr-only">
+                  <.link navigate={~p"/events/#{@event}/batches/#{batch}"}>Ver</.link>
+                </div>
+                <.link
+                  navigate={~p"/events/#{@event}/batches/#{batch}/edit"}
+                  class="btn btn-ghost btn-xs"
+                >
+                  Editar
+                </.link>
+              </:action>
+              <:action :let={{id, batch}}>
+                <.link
+                  phx-click={JS.push("delete", value: %{id: batch.id}) |> hide("##{id}")}
+                  data-confirm="Tem certeza?"
+                  class="btn btn-ghost btn-xs text-error"
+                >
+                  Excluir
+                </.link>
+              </:action>
+            </.table>
           </div>
-          <.link navigate={~p"/events/#{@event}/batches/#{batch}/edit"}>Editar</.link>
-        </:action>
-
-        <:action :let={{id, batch}}>
-          <.link
-            phx-click={JS.push("delete", value: %{id: batch.id}) |> hide("##{id}")}
-            data-confirm="Tem certeza?"
-          >
-            Excluir
-          </.link>
-        </:action>
-      </.table>
+        </div>
+      </div>
     </Layouts.app>
     """
   end

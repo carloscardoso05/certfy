@@ -20,7 +20,7 @@ defmodule CertfyWeb.Router do
   scope "/", CertfyWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    get "/", HomeController, :index
   end
 
   # Other scopes may use custom stacks.
@@ -56,7 +56,10 @@ defmodule CertfyWeb.Router do
         live "/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       end
 
-      post "/update-password", UserSessionController, :update_password
+      live_session :admin_users,
+        on_mount: @auth_hooks ++ [{CertfyWeb.UserAuth, :require_admin}] do
+        live "/", UserLive.Index, :index
+      end
     end
 
     scope "/events" do
@@ -103,7 +106,7 @@ defmodule CertfyWeb.Router do
 
     live_session :current_user,
       on_mount: [{CertfyWeb.UserAuth, :mount_current_scope}] do
-      live "/users/register", UserLive.Registration, :new
+      live "/users/register/:token", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new
     end

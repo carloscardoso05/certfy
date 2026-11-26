@@ -9,7 +9,7 @@ defmodule CertfyWeb.EventLive.Show do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         Evento {@event.id}
-        <:subtitle>Este é um registro de evento do seu banco de dados.</:subtitle>
+        <:subtitle>Detalhes do evento e acesso aos lotes.</:subtitle>
 
         <:actions>
           <.button navigate={~p"/events"}>
@@ -26,13 +26,22 @@ defmodule CertfyWeb.EventLive.Show do
         </:actions>
       </.header>
 
-      <.list>
-        <:item title="Nome">{@event.name}</:item>
-
-        <:item title="Tem template?">{if @event.template_path, do: "Sim", else: "Não"}</:item>
-
-        <:item title="Dados adicionais">{map_size(@event.extra_data || %{})}</:item>
-      </.list>
+      <div class="stats stats-vertical w-full border border-base-300 bg-base-100 shadow-sm lg:stats-horizontal">
+        <div class="stat">
+          <div class="stat-title">Nome</div>
+          <div class="stat-value text-lg">{@event.name}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Tem template?</div>
+          <div class="stat-value text-lg">
+            {if @event.template_path, do: "Sim", else: "Não"}
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Dados adicionais</div>
+          <div class="stat-value text-lg">{map_size(@event.extra_data || %{})}</div>
+        </div>
+      </div>
     </Layouts.app>
     """
   end

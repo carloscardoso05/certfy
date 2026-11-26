@@ -9,7 +9,7 @@ defmodule CertfyWeb.UserLive.LoginTest do
       {:ok, _lv, html} = live(conn, ~p"/users/log-in")
 
       assert html =~ "Entrar"
-      assert html =~ "Cadastre-se"
+      assert html =~ "O acesso é por convite"
       assert html =~ "Entrar com e-mail"
     end
   end
@@ -43,52 +43,6 @@ defmodule CertfyWeb.UserLive.LoginTest do
     end
   end
 
-  describe "user login - password" do
-    test "redirects if user logs in with valid credentials", %{conn: conn} do
-      user = user_fixture() |> set_password()
-
-      {:ok, lv, _html} = live(conn, ~p"/users/log-in")
-
-      form =
-        form(lv, "#login_form_password",
-          user: %{email: user.email, password: valid_user_password(), remember_me: true}
-        )
-
-      conn = submit_form(form, conn)
-
-      assert redirected_to(conn) == ~p"/"
-    end
-
-    test "redirects to login page with a flash error if credentials are invalid", %{
-      conn: conn
-    } do
-      {:ok, lv, _html} = live(conn, ~p"/users/log-in")
-
-      form =
-        form(lv, "#login_form_password", user: %{email: "test@email.com", password: "123456"})
-
-      render_submit(form, %{user: %{remember_me: true}})
-
-      conn = follow_trigger_action(form, conn)
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) == "E-mail ou senha inválidos."
-      assert redirected_to(conn) == ~p"/users/log-in"
-    end
-  end
-
-  describe "login navigation" do
-    test "redirects to registration page when the Register button is clicked", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/log-in")
-
-      {:ok, _login_live, login_html} =
-        lv
-        |> element("main a", "Cadastre-se")
-        |> render_click()
-        |> follow_redirect(conn, ~p"/users/register")
-
-      assert login_html =~ "Crie uma conta"
-    end
-  end
-
   describe "re-authentication (sudo mode)" do
     setup %{conn: conn} do
       user = user_fixture()
@@ -99,7 +53,7 @@ defmodule CertfyWeb.UserLive.LoginTest do
       {:ok, _lv, html} = live(conn, ~p"/users/log-in")
 
       assert html =~ "Você precisa se autenticar novamente"
-      refute html =~ "Cadastre-se"
+      refute html =~ "O acesso é por convite"
       assert html =~ "Entrar com e-mail"
 
       assert html =~

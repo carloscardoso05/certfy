@@ -10,18 +10,31 @@ defmodule CertfyWeb.BatchLive.Form do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         {@page_title}
-        <:subtitle>Use este formulário para gerenciar os lotes do seu banco de dados.</:subtitle>
+        <:subtitle>Lote do evento {@event.name}.</:subtitle>
       </.header>
 
-      <.form for={@form} id="batch-form" phx-change="validate" phx-submit="save">
-        <.input field={@form[:name]} type="text" label="Nome" />
-        <footer>
-          <.button phx-disable-with="Salvando..." variant="primary">Salvar lote</.button>
-          <.button navigate={return_path(@current_scope, @event, @return_to, @batch)}>
-            Cancelar
-          </.button>
-        </footer>
-      </.form>
+      <div class="mx-auto w-full max-w-xl">
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <.form
+              for={@form}
+              id="batch-form"
+              phx-change="validate"
+              phx-submit="save"
+              class="space-y-6"
+            >
+              <.input field={@form[:name]} type="text" label="Nome" required />
+
+              <footer class="flex flex-wrap justify-end gap-2">
+                <.button navigate={return_path(@current_scope, @event, @return_to, @batch)}>
+                  Cancelar
+                </.button>
+                <.button phx-disable-with="Salvando..." variant="primary">Salvar lote</.button>
+              </footer>
+            </.form>
+          </div>
+        </div>
+      </div>
     </Layouts.app>
     """
   end

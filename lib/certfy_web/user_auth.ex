@@ -234,18 +234,57 @@ defmodule CertfyWeb.UserAuth do
   def on_mount(:require_sudo_mode, _params, session, socket) do
     socket = mount_current_scope(socket, session)
 
-    if Accounts.sudo_mode?(socket.assigns.current_scope.user, -10) do
-      {:cont, socket}
-    else
-      socket =
-        socket
-        |> Phoenix.LiveView.put_flash(
-          :error,
-          "Você precisa se autenticar novamente para acessar esta página."
-        )
-        |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
+    case socket.assigns.current_scope do
+      %Scope{user: %{}} = scope ->
+        if Accounts.sudo_mode?(scope.user, -10) do
+          {:cont, socket}
+        else
+          socket =
+            socket
+            |> Phoenix.LiveView.put_flash(
+              :error,
+              "Você precisa se autenticar novamente para acessar esta página."
+            )
+            |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
 
-      {:halt, socket}
+          {:halt, socket}
+        end
+
+      _ ->
+        socket =
+          socket
+          |> Phoenix.LiveView.put_flash(:error, "Você precisa entrar para acessar esta página.")
+          |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
+
+        {:halt, socket}
+    end
+  end
+
+  def on_mount(:require_admin, _params, session, socket) do
+    socket = mount_current_scope(socket, session)
+
+    case socket.assigns.current_scope do
+      %Scope{user: %{role: :ADMIN}} ->
+        {:cont, socket}
+
+      %Scope{user: %{}} ->
+        socket =
+          socket
+          |> Phoenix.LiveView.put_flash(
+            :error,
+            "Você não tem permissão para acessar esta página."
+          )
+          |> Phoenix.LiveView.redirect(to: ~p"/events")
+
+        {:halt, socket}
+
+      _ ->
+        socket =
+          socket
+          |> Phoenix.LiveView.put_flash(:error, "Você precisa entrar para acessar esta página.")
+          |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
+
+        {:halt, socket}
     end
   end
 
@@ -261,12 +300,12 @@ defmodule CertfyWeb.UserAuth do
   end
 
   @doc "Returns the path to redirect to after log in."
-  # the user was already logged in, redirect to settings
+  # the user was already logged in, redirect to the main page
   def signed_in_path(%Plug.Conn{assigns: %{current_scope: %Scope{user: %Accounts.User{}}}}) do
-    ~p"/users/settings"
+    ~p"/events"
   end
 
-  def signed_in_path(_), do: ~p"/"
+  def signed_in_path(_), do: ~p"/events"
 
   @doc """
   Plug for routes that require the user to be authenticated.

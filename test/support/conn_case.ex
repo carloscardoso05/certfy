@@ -57,6 +57,21 @@ defmodule CertfyWeb.ConnCase do
   end
 
   @doc """
+  Setup helper that registers and logs in an admin.
+  """
+  def register_and_log_in_admin(%{conn: conn} = context) do
+    user = Certfy.AccountsFixtures.admin_fixture()
+    scope = Certfy.Accounts.Scope.for_user(user)
+
+    opts =
+      context
+      |> Map.take([:token_authenticated_at])
+      |> Enum.into([])
+
+    %{conn: log_in_user(conn, user, opts), user: user, scope: scope}
+  end
+
+  @doc """
   Logs the given `user` into the `conn`.
 
   It returns an updated `conn`.
