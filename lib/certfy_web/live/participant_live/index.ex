@@ -30,7 +30,9 @@ defmodule CertfyWeb.ParticipantLive.Index do
       >
         <:col :let={{_id, participant}} label="Name">{participant.name}</:col>
         <:col :let={{_id, participant}} label="Email">{participant.email}</:col>
-        <:col :let={{_id, participant}} label="Extra data">{inspect(participant.extra_data)}</:col>
+        <:col :let={{_id, participant}} label="Extra data">
+          {map_size(participant.extra_data || %{})}
+        </:col>
         <:action :let={{_id, participant}}>
           <div class="sr-only">
             <.link navigate={~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}"}>

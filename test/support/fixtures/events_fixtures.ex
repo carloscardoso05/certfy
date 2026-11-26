@@ -16,14 +16,15 @@ defmodule Certfy.EventsFixtures do
   Generate a event.
   """
   def event_fixture(scope, attrs \\ %{}) do
+    {template_path, attrs} = Map.pop(attrs, :template_path, "some template_path")
+
     attrs =
       Enum.into(attrs, %{
         extra_data: %{},
-        name: unique_event_name(),
-        template_path: "some template_path"
+        name: unique_event_name()
       })
 
-    {:ok, event} = Certfy.Events.create_event(scope, attrs)
+    {:ok, event} = Certfy.Events.create_event(scope, attrs, template_path: template_path)
     event
   end
 

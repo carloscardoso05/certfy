@@ -28,7 +28,7 @@ defmodule CertfyWeb.BatchLive.Show do
 
       <.list>
         <:item title="Name">{@batch.name}</:item>
-        <:item title="Extra data">{inspect(@batch.extra_data)}</:item>
+        <:item title="Extra data">{map_size(@batch.extra_data || %{})}</:item>
       </.list>
     </Layouts.app>
     """

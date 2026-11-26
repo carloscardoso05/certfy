@@ -9,7 +9,7 @@ defmodule Certfy.EventsTest do
     import Certfy.AccountsFixtures, only: [user_scope_fixture: 0]
     import Certfy.EventsFixtures
 
-    @invalid_attrs %{name: nil, template_path: nil, extra_data: nil}
+    @invalid_attrs %{name: nil, extra_data: nil}
 
     test "list_events/1 returns all scoped events" do
       scope = user_scope_fixture()
@@ -28,11 +28,13 @@ defmodule Certfy.EventsTest do
       assert_raise Ecto.NoResultsError, fn -> Events.get_event!(other_scope, event.id) end
     end
 
-    test "create_event/2 with valid data creates a event" do
-      valid_attrs = %{name: "some name", template_path: "some template_path", extra_data: %{}}
+    test "create_event/3 with valid data creates a event" do
+      valid_attrs = %{name: "some name", extra_data: %{}}
       scope = user_scope_fixture()
 
-      assert {:ok, %Event{} = event} = Events.create_event(scope, valid_attrs)
+      assert {:ok, %Event{} = event} =
+               Events.create_event(scope, valid_attrs, template_path: "some template_path")
+
       assert event.name == "some name"
       assert event.template_path == "some template_path"
       assert event.extra_data == %{}
@@ -44,17 +46,16 @@ defmodule Certfy.EventsTest do
       assert {:error, %Ecto.Changeset{}} = Events.create_event(scope, @invalid_attrs)
     end
 
-    test "update_event/3 with valid data updates the event" do
+    test "update_event/4 with valid data updates the event" do
       scope = user_scope_fixture()
       event = event_fixture(scope)
+      update_attrs = %{name: "some updated name", extra_data: %{}}
 
-      update_attrs = %{
-        name: "some updated name",
-        template_path: "some updated template_path",
-        extra_data: %{}
-      }
+      assert {:ok, %Event{} = event} =
+               Events.update_event(scope, event, update_attrs,
+                 template_path: "some updated template_path"
+               )
 
-      assert {:ok, %Event{} = event} = Events.update_event(scope, event, update_attrs)
       assert event.name == "some updated name"
       assert event.template_path == "some updated template_path"
       assert event.extra_data == %{}

@@ -22,7 +22,9 @@ defmodule CertfyWeb.BatchLive.Index do
         row_click={fn {_id, batch} -> JS.navigate(~p"/events/#{@event}/batches/#{batch}") end}
       >
         <:col :let={{_id, batch}} label="Name">{batch.name}</:col>
-        <:col :let={{_id, batch}} label="Extra data">{inspect(batch.extra_data)}</:col>
+        <:col :let={{_id, batch}} label="Extra data">
+          {map_size(batch.extra_data || %{})}
+        </:col>
         <:action :let={{_id, batch}}>
           <div class="sr-only">
             <.link navigate={~p"/events/#{@event}/batches/#{batch}"}>Show</.link>

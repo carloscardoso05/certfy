@@ -25,8 +25,8 @@ defmodule CertfyWeb.EventLive.Show do
 
       <.list>
         <:item title="Name">{@event.name}</:item>
-        <:item title="Template path">{@event.template_path}</:item>
-        <:item title="Extra data">{inspect(@event.extra_data)}</:item>
+        <:item title="Tem template?">{if @event.template_path, do: "Sim", else: "Não"}</:item>
+        <:item title="Extra data">{map_size(@event.extra_data || %{})}</:item>
       </.list>
     </Layouts.app>
     """

@@ -28,7 +28,7 @@ defmodule CertfyWeb.ParticipantLive.Show do
       <.list>
         <:item title="Name">{@participant.name}</:item>
         <:item title="Email">{@participant.email}</:item>
-        <:item title="Extra data">{inspect(@participant.extra_data)}</:item>
+        <:item title="Extra data">{map_size(@participant.extra_data || %{})}</:item>
       </.list>
     </Layouts.app>
     """

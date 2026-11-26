@@ -23,6 +23,18 @@ end
 config :certfy, CertfyWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+config :ex_aws,
+  access_key_id: System.get_env("RUSTFS_ACCESS_KEY", "rustfsadmin"),
+  secret_access_key: System.get_env("RUSTFS_SECRET_KEY", "rustfsadmin"),
+  region: System.get_env("RUSTFS_REGION", "us-east-1")
+
+config :ex_aws, :s3,
+  scheme: System.get_env("RUSTFS_SCHEME", "http://"),
+  host: System.get_env("RUSTFS_HOST", "localhost"),
+  port: String.to_integer(System.get_env("RUSTFS_PORT", "9000"))
+
+config :certfy, :storage, bucket: System.get_env("RUSTFS_BUCKET", "certfy-templates")
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :certfy, CertfyWeb.Endpoint,

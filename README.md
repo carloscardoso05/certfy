@@ -7,6 +7,21 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
+## Object storage (RustFS)
+
+Event templates are stored in RustFS, an S3-compatible service. Start the local
+services with:
+
+```bash
+docker compose up -d
+```
+
+The defaults match `docker-compose.yml`: `http://localhost:9000`,
+`rustfsadmin`/`rustfsadmin`, bucket `certfy-templates` (created on the first
+upload). They can be overridden with `RUSTFS_SCHEME`, `RUSTFS_HOST`,
+`RUSTFS_PORT`, `RUSTFS_REGION`, `RUSTFS_ACCESS_KEY`, `RUSTFS_SECRET_KEY` and
+`RUSTFS_BUCKET`.
+
 Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
 
 ## Learn more

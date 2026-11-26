@@ -74,10 +74,10 @@ defmodule Certfy.Events do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_event(%Scope{} = scope, attrs) do
+  def create_event(%Scope{} = scope, attrs, opts \\ []) do
     with {:ok, event = %Event{}} <-
            %Event{}
-           |> Event.changeset(attrs, scope)
+           |> Event.changeset(attrs, scope, opts)
            |> Repo.insert() do
       broadcast_event(scope, {:created, event})
       {:ok, event}
@@ -96,12 +96,12 @@ defmodule Certfy.Events do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_event(%Scope{} = scope, %Event{} = event, attrs) do
+  def update_event(%Scope{} = scope, %Event{} = event, attrs, opts \\ []) do
     true = event.user_id == scope.user.id
 
     with {:ok, event = %Event{}} <-
            event
-           |> Event.changeset(attrs, scope)
+           |> Event.changeset(attrs, scope, opts)
            |> Repo.update() do
       broadcast_event(scope, {:updated, event})
       {:ok, event}

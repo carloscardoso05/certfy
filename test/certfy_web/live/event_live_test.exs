@@ -4,13 +4,9 @@ defmodule CertfyWeb.EventLiveTest do
   import Phoenix.LiveViewTest
   import Certfy.EventsFixtures
 
-  @create_attrs %{name: "some name", template_path: "some template_path", extra_data: %{}}
-  @update_attrs %{
-    name: "some updated name",
-    template_path: "some updated template_path",
-    extra_data: %{}
-  }
-  @invalid_attrs %{name: nil, template_path: nil}
+  @create_attrs %{name: "some name"}
+  @update_attrs %{name: "some updated name"}
+  @invalid_attrs %{name: nil}
 
   setup :register_and_log_in_user
 
@@ -28,6 +24,7 @@ defmodule CertfyWeb.EventLiveTest do
 
       assert html =~ "Listing Events"
       assert html =~ event.name
+      assert html =~ "Tem template?"
     end
 
     test "saves new event", %{conn: conn} do
@@ -54,6 +51,44 @@ defmodule CertfyWeb.EventLiveTest do
       html = render(index_live)
       assert html =~ "Event created successfully"
       assert html =~ "some name"
+    end
+
+    test "saves a template file", %{conn: conn, scope: scope} do
+      {:ok, index_live, _html} = live(conn, ~p"/events")
+
+      assert {:ok, form_live, _} =
+               index_live
+               |> element("a", "New Event")
+               |> render_click()
+               |> follow_redirect(conn, ~p"/events/new")
+
+      content = "template content"
+
+      upload =
+        file_input(form_live, "#event-form", :template, [
+          %{
+            last_modified: 1_594_171_879_000,
+            name: "template.pptx",
+            content: content,
+            size: byte_size(content),
+            type: "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+          }
+        ])
+
+      assert render_upload(upload, "template.pptx") =~ "100%"
+
+      assert {:ok, _index_live, _html} =
+               form_live
+               |> form("#event-form", event: %{name: "event with template"})
+               |> render_submit()
+               |> follow_redirect(conn, ~p"/events")
+
+      event =
+        scope
+        |> Certfy.Events.list_events()
+        |> Enum.find(&(&1.name == "event with template"))
+
+      assert event.template_path =~ ~r{\Atemplates/[A-Za-z0-9_-]+\.pptx\z}
     end
 
     test "updates event in listing", %{conn: conn, event: event} do
