@@ -10,16 +10,17 @@ defmodule CertfyWeb.UserLive.Login do
       <div class="mx-auto max-w-sm space-y-4">
         <div class="text-center">
           <.header>
-            <p>Log in</p>
+            <p>Entrar</p>
+
             <:subtitle>
               <%= if @current_scope do %>
-                You need to reauthenticate to perform sensitive actions on your account.
+                Você precisa se autenticar novamente para realizar ações sensíveis na sua conta.
               <% else %>
-                Don't have an account? <.link
+                Não tem uma conta? <.link
                   navigate={~p"/users/register"}
                   class="font-semibold text-brand hover:underline"
                   phx-no-format
-                >Sign up</.link> for an account now.
+                >Cadastre-se</.link> agora mesmo.
               <% end %>
             </:subtitle>
           </.header>
@@ -28,9 +29,10 @@ defmodule CertfyWeb.UserLive.Login do
         <div :if={local_mail_adapter?()} class="alert alert-info">
           <.icon name="hero-information-circle" class="size-6 shrink-0" />
           <div>
-            <p>You are running the local mail adapter.</p>
+            <p>Você está usando o adaptador de e-mail local.</p>
+
             <p>
-              To see sent emails, visit <.link href="/dev/mailbox" class="underline">the mailbox page</.link>.
+              Para ver os e-mails enviados, acesse <.link href="/dev/mailbox" class="underline">a página da caixa de entrada</.link>.
             </p>
           </div>
         </div>
@@ -46,18 +48,18 @@ defmodule CertfyWeb.UserLive.Login do
             readonly={!!@current_scope}
             field={f[:email]}
             type="email"
-            label="Email"
+            label="E-mail"
             autocomplete="username"
             spellcheck="false"
             required
             phx-mounted={JS.focus()}
           />
           <.button class="btn btn-primary w-full">
-            Log in with email <span aria-hidden="true">→</span>
+            Entrar com e-mail <span aria-hidden="true">→</span>
           </.button>
         </.form>
 
-        <div class="divider">or</div>
+        <div class="divider">ou</div>
 
         <.form
           :let={f}
@@ -71,7 +73,7 @@ defmodule CertfyWeb.UserLive.Login do
             readonly={!!@current_scope}
             field={f[:email]}
             type="email"
-            label="Email"
+            label="E-mail"
             autocomplete="username"
             spellcheck="false"
             required
@@ -79,15 +81,16 @@ defmodule CertfyWeb.UserLive.Login do
           <.input
             field={@form[:password]}
             type="password"
-            label="Password"
+            label="Senha"
             autocomplete="current-password"
             spellcheck="false"
           />
           <.button class="btn btn-primary w-full" name={@form[:remember_me].name} value="true">
-            Log in and stay logged in <span aria-hidden="true">→</span>
+            Entrar e manter conectado <span aria-hidden="true">→</span>
           </.button>
+
           <.button class="btn btn-primary btn-soft w-full mt-2">
-            Log in only this time
+            Entrar apenas desta vez
           </.button>
         </.form>
       </div>
@@ -120,7 +123,7 @@ defmodule CertfyWeb.UserLive.Login do
     end
 
     info =
-      "If your email is in our system, you will receive instructions for logging in shortly."
+      "Se o seu e-mail estiver cadastrado, você receberá instruções de acesso em breve."
 
     {:noreply,
      socket

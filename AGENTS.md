@@ -5,6 +5,13 @@ This is a web application written using the Phoenix web framework.
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
 
+## Language conventions
+
+- Everything the user interacts with is in **Brazilian Portuguese (pt-BR)** by default: UI copy, page titles, flash messages, validation errors, emails, and any other user-facing text.
+- Code (identifiers, modules, variables), comments, documentation, tests, commit messages, and anything the user does not see stay in **English**.
+- Gettext is used only for changeset/validation errors (`errors` domain, `default_locale: "pt_BR"`). Other user-facing strings are written directly in pt-BR.
+- When a user-facing string changes, update its test assertions to the pt-BR text.
+
 ### Phoenix v1.8 guidelines
 
 - **Always** begin your LiveView templates with `<Layouts.app flash={@flash} ...>` which wraps all inner content

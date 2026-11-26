@@ -11,13 +11,13 @@ defmodule CertfyWeb.UserLive.Registration do
       <div class="mx-auto max-w-sm">
         <div class="text-center">
           <.header>
-            Register for an account
+            Crie uma conta
             <:subtitle>
-              Already registered?
+              Já tem cadastro?
               <.link navigate={~p"/users/log-in"} class="font-semibold text-brand hover:underline">
-                Log in
+                Entrar
               </.link>
-              to your account now.
+              na sua conta.
             </:subtitle>
           </.header>
         </div>
@@ -26,15 +26,14 @@ defmodule CertfyWeb.UserLive.Registration do
           <.input
             field={@form[:email]}
             type="email"
-            label="Email"
+            label="E-mail"
             autocomplete="username"
             spellcheck="false"
             required
             phx-mounted={JS.focus()}
           />
-
-          <.button phx-disable-with="Creating account..." class="btn btn-primary w-full">
-            Create an account
+          <.button phx-disable-with="Criando conta..." class="btn btn-primary w-full">
+            Criar conta
           </.button>
         </.form>
       </div>
@@ -68,7 +67,7 @@ defmodule CertfyWeb.UserLive.Registration do
          socket
          |> put_flash(
            :info,
-           "An email was sent to #{user.email}, please access it to confirm your account."
+           "Um e-mail foi enviado para #{user.email}. Acesse-o para confirmar sua conta."
          )
          |> push_navigate(to: ~p"/users/log-in")}
 

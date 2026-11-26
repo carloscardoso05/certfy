@@ -8,25 +8,30 @@ defmodule CertfyWeb.EventLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Event {@event.id}
-        <:subtitle>This is a event record from your database.</:subtitle>
+        Evento {@event.id}
+        <:subtitle>Este é um registro de evento do seu banco de dados.</:subtitle>
+
         <:actions>
           <.button navigate={~p"/events"}>
             <.icon name="hero-arrow-left" />
           </.button>
+
           <.button navigate={~p"/events/#{@event}/batches"}>
-            <.icon name="hero-rectangle-stack" /> Batches
+            <.icon name="hero-rectangle-stack" /> Lotes
           </.button>
+
           <.button variant="primary" navigate={~p"/events/#{@event}/edit?return_to=show"}>
-            <.icon name="hero-pencil-square" /> Edit event
+            <.icon name="hero-pencil-square" /> Editar evento
           </.button>
         </:actions>
       </.header>
 
       <.list>
-        <:item title="Name">{@event.name}</:item>
+        <:item title="Nome">{@event.name}</:item>
+
         <:item title="Tem template?">{if @event.template_path, do: "Sim", else: "Não"}</:item>
-        <:item title="Extra data">{map_size(@event.extra_data || %{})}</:item>
+
+        <:item title="Dados adicionais">{map_size(@event.extra_data || %{})}</:item>
       </.list>
     </Layouts.app>
     """
@@ -40,7 +45,7 @@ defmodule CertfyWeb.EventLive.Show do
 
     {:ok,
      socket
-     |> assign(:page_title, "Show Event")
+     |> assign(:page_title, "Evento")
      |> assign(:event, Events.get_event!(socket.assigns.current_scope, id))}
   end
 
@@ -58,7 +63,7 @@ defmodule CertfyWeb.EventLive.Show do
       ) do
     {:noreply,
      socket
-     |> put_flash(:error, "The current event was deleted.")
+     |> put_flash(:error, "O evento atual foi excluído.")
      |> push_navigate(to: ~p"/events")}
   end
 

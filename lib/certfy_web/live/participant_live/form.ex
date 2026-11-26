@@ -10,16 +10,18 @@ defmodule CertfyWeb.ParticipantLive.Form do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         {@page_title}
-        <:subtitle>Use this form to manage participant records in your database.</:subtitle>
+        <:subtitle>
+          Use este formulário para gerenciar os participantes do seu banco de dados.
+        </:subtitle>
       </.header>
 
       <.form for={@form} id="participant-form" phx-change="validate" phx-submit="save">
-        <.input field={@form[:name]} type="text" label="Name" />
-        <.input field={@form[:email]} type="text" label="Email" />
+        <.input field={@form[:name]} type="text" label="Nome" />
+        <.input field={@form[:email]} type="text" label="E-mail" />
         <footer>
-          <.button phx-disable-with="Saving..." variant="primary">Save Participant</.button>
+          <.button phx-disable-with="Salvando..." variant="primary">Salvar participante</.button>
           <.button navigate={return_path(@current_scope, @event, @batch, @return_to, @participant)}>
-            Cancel
+            Cancelar
           </.button>
         </footer>
       </.form>
@@ -43,7 +45,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
       Events.get_participant!(socket.assigns.current_scope, socket.assigns.batch, id)
 
     socket
-    |> assign(:page_title, "Edit Participant")
+    |> assign(:page_title, "Editar participante")
     |> assign(:participant, participant)
     |> assign(
       :form,
@@ -55,7 +57,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
     participant = %Participant{user_id: socket.assigns.current_scope.user.id}
 
     socket
-    |> assign(:page_title, "New Participant")
+    |> assign(:page_title, "Novo participante")
     |> assign(:participant, participant)
     |> assign(
       :form,
@@ -88,7 +90,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
       {:ok, participant} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Participant updated successfully")
+         |> put_flash(:info, "Participante atualizado com sucesso.")
          |> push_navigate(
            to:
              return_path(
@@ -114,7 +116,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
       {:ok, participant} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Participant created successfully")
+         |> put_flash(:info, "Participante criado com sucesso.")
          |> push_navigate(
            to:
              return_path(

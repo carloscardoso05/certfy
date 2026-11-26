@@ -10,15 +10,15 @@ defmodule CertfyWeb.BatchLive.Form do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         {@page_title}
-        <:subtitle>Use this form to manage batch records in your database.</:subtitle>
+        <:subtitle>Use este formulário para gerenciar os lotes do seu banco de dados.</:subtitle>
       </.header>
 
       <.form for={@form} id="batch-form" phx-change="validate" phx-submit="save">
-        <.input field={@form[:name]} type="text" label="Name" />
+        <.input field={@form[:name]} type="text" label="Nome" />
         <footer>
-          <.button phx-disable-with="Saving..." variant="primary">Save Batch</.button>
+          <.button phx-disable-with="Salvando..." variant="primary">Salvar lote</.button>
           <.button navigate={return_path(@current_scope, @event, @return_to, @batch)}>
-            Cancel
+            Cancelar
           </.button>
         </footer>
       </.form>
@@ -41,7 +41,7 @@ defmodule CertfyWeb.BatchLive.Form do
     batch = Events.get_batch!(socket.assigns.current_scope, socket.assigns.event, id)
 
     socket
-    |> assign(:page_title, "Edit Batch")
+    |> assign(:page_title, "Editar lote")
     |> assign(:batch, batch)
     |> assign(:form, to_form(Events.change_batch(socket.assigns.current_scope, batch)))
   end
@@ -50,7 +50,7 @@ defmodule CertfyWeb.BatchLive.Form do
     batch = %Batch{user_id: socket.assigns.current_scope.user.id}
 
     socket
-    |> assign(:page_title, "New Batch")
+    |> assign(:page_title, "Novo lote")
     |> assign(:batch, batch)
     |> assign(:form, to_form(Events.change_batch(socket.assigns.current_scope, batch)))
   end
@@ -72,7 +72,7 @@ defmodule CertfyWeb.BatchLive.Form do
       {:ok, batch} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Batch updated successfully")
+         |> put_flash(:info, "Lote atualizado com sucesso.")
          |> push_navigate(
            to:
              return_path(
@@ -93,7 +93,7 @@ defmodule CertfyWeb.BatchLive.Form do
       {:ok, batch} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Batch created successfully")
+         |> put_flash(:info, "Lote criado com sucesso.")
          |> push_navigate(
            to:
              return_path(

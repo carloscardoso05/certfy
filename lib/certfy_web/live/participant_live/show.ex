@@ -8,27 +8,31 @@ defmodule CertfyWeb.ParticipantLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Participant {@participant.id}
-        <:subtitle>This is a participant record from your database.</:subtitle>
+        Participante {@participant.id}
+        <:subtitle>Este é um registro de participante do seu banco de dados.</:subtitle>
+
         <:actions>
           <.button navigate={~p"/events/#{@event}/batches/#{@batch}/participants"}>
             <.icon name="hero-arrow-left" />
           </.button>
+
           <.button
             variant="primary"
             navigate={
               ~p"/events/#{@event}/batches/#{@batch}/participants/#{@participant}/edit?return_to=show"
             }
           >
-            <.icon name="hero-pencil-square" /> Edit participant
+            <.icon name="hero-pencil-square" /> Editar participante
           </.button>
         </:actions>
       </.header>
 
       <.list>
-        <:item title="Name">{@participant.name}</:item>
-        <:item title="Email">{@participant.email}</:item>
-        <:item title="Extra data">{map_size(@participant.extra_data || %{})}</:item>
+        <:item title="Nome">{@participant.name}</:item>
+
+        <:item title="E-mail">{@participant.email}</:item>
+
+        <:item title="Dados adicionais">{map_size(@participant.extra_data || %{})}</:item>
       </.list>
     </Layouts.app>
     """
@@ -42,7 +46,7 @@ defmodule CertfyWeb.ParticipantLive.Show do
 
     {:ok,
      socket
-     |> assign(:page_title, "Show Participant")
+     |> assign(:page_title, "Participante")
      |> assign(
        :participant,
        Events.get_participant!(socket.assigns.current_scope, socket.assigns.batch, id)
@@ -63,7 +67,7 @@ defmodule CertfyWeb.ParticipantLive.Show do
       ) do
     {:noreply,
      socket
-     |> put_flash(:error, "The current participant was deleted.")
+     |> put_flash(:error, "O participante atual foi excluído.")
      |> push_navigate(
        to: ~p"/events/#{socket.assigns.event}/batches/#{socket.assigns.batch}/participants"
      )}

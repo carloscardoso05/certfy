@@ -18,7 +18,9 @@ defmodule CertfyWeb.ErrorHTML do
   # The default is to render a plain text page based on
   # the template name. For example, "404.html" becomes
   # "Not Found".
-  def render(template, _assigns) do
-    Phoenix.Controller.status_message_from_template(template)
-  end
+  def render("400.html", _assigns), do: "Requisição inválida"
+  def render("404.html", _assigns), do: "Página não encontrada"
+  def render("422.html", _assigns), do: "Entidade não processável"
+  def render("500.html", _assigns), do: "Erro interno do servidor"
+  def render(template, _assigns), do: Phoenix.Controller.status_message_from_template(template)
 end

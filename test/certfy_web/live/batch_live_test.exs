@@ -23,7 +23,7 @@ defmodule CertfyWeb.BatchLiveTest do
     test "lists all batches", %{conn: conn, event: event, batch: batch} do
       {:ok, _index_live, html} = live(conn, ~p"/events/#{event}/batches")
 
-      assert html =~ "Listing Batches"
+      assert html =~ "Lotes"
       assert html =~ batch.name
     end
 
@@ -45,15 +45,15 @@ defmodule CertfyWeb.BatchLiveTest do
 
       assert {:ok, form_live, _} =
                index_live
-               |> element("a", "New Batch")
+               |> element("a", "Novo lote")
                |> render_click()
                |> follow_redirect(conn, ~p"/events/#{event}/batches/new")
 
-      assert render(form_live) =~ "New Batch"
+      assert render(form_live) =~ "Novo lote"
 
       assert form_live
              |> form("#batch-form", batch: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, index_live, _html} =
                form_live
@@ -62,7 +62,7 @@ defmodule CertfyWeb.BatchLiveTest do
                |> follow_redirect(conn, ~p"/events/#{event}/batches")
 
       html = render(index_live)
-      assert html =~ "Batch created successfully"
+      assert html =~ "Lote criado com sucesso."
       assert html =~ "some name"
     end
 
@@ -71,15 +71,15 @@ defmodule CertfyWeb.BatchLiveTest do
 
       assert {:ok, form_live, _html} =
                index_live
-               |> element("#batches-#{batch.id} a", "Edit")
+               |> element("#batches-#{batch.id} a", "Editar")
                |> render_click()
                |> follow_redirect(conn, ~p"/events/#{event}/batches/#{batch}/edit")
 
-      assert render(form_live) =~ "Edit Batch"
+      assert render(form_live) =~ "Editar lote"
 
       assert form_live
              |> form("#batch-form", batch: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, index_live, _html} =
                form_live
@@ -88,14 +88,14 @@ defmodule CertfyWeb.BatchLiveTest do
                |> follow_redirect(conn, ~p"/events/#{event}/batches")
 
       html = render(index_live)
-      assert html =~ "Batch updated successfully"
+      assert html =~ "Lote atualizado com sucesso."
       assert html =~ "some updated name"
     end
 
     test "deletes batch in listing", %{conn: conn, event: event, batch: batch} do
       {:ok, index_live, _html} = live(conn, ~p"/events/#{event}/batches")
 
-      assert index_live |> element("#batches-#{batch.id} a", "Delete") |> render_click()
+      assert index_live |> element("#batches-#{batch.id} a", "Excluir") |> render_click()
       refute has_element?(index_live, "#batches-#{batch.id}")
     end
   end
@@ -106,7 +106,7 @@ defmodule CertfyWeb.BatchLiveTest do
     test "displays batch", %{conn: conn, event: event, batch: batch} do
       {:ok, _show_live, html} = live(conn, ~p"/events/#{event}/batches/#{batch}")
 
-      assert html =~ "Show Batch"
+      assert html =~ "Lote"
       assert html =~ batch.name
     end
 
@@ -115,18 +115,18 @@ defmodule CertfyWeb.BatchLiveTest do
 
       assert {:ok, form_live, _} =
                show_live
-               |> element("a", "Edit")
+               |> element("a", "Editar")
                |> render_click()
                |> follow_redirect(
                  conn,
                  ~p"/events/#{event}/batches/#{batch}/edit?return_to=show"
                )
 
-      assert render(form_live) =~ "Edit Batch"
+      assert render(form_live) =~ "Editar lote"
 
       assert form_live
              |> form("#batch-form", batch: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, show_live, _html} =
                form_live
@@ -135,7 +135,7 @@ defmodule CertfyWeb.BatchLiveTest do
                |> follow_redirect(conn, ~p"/events/#{event}/batches/#{batch}")
 
       html = render(show_live)
-      assert html =~ "Batch updated successfully"
+      assert html =~ "Lote atualizado com sucesso."
       assert html =~ "some updated name"
     end
   end

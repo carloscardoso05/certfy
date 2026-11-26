@@ -8,10 +8,10 @@ defmodule CertfyWeb.BatchLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Listing Batches
+        Lotes
         <:actions>
           <.button variant="primary" navigate={~p"/events/#{@event}/batches/new"}>
-            <.icon name="hero-plus" /> New Batch
+            <.icon name="hero-plus" /> Novo lote
           </.button>
         </:actions>
       </.header>
@@ -21,22 +21,25 @@ defmodule CertfyWeb.BatchLive.Index do
         rows={@streams.batches}
         row_click={fn {_id, batch} -> JS.navigate(~p"/events/#{@event}/batches/#{batch}") end}
       >
-        <:col :let={{_id, batch}} label="Name">{batch.name}</:col>
-        <:col :let={{_id, batch}} label="Extra data">
+        <:col :let={{_id, batch}} label="Nome">{batch.name}</:col>
+
+        <:col :let={{_id, batch}} label="Dados adicionais">
           {map_size(batch.extra_data || %{})}
         </:col>
+
         <:action :let={{_id, batch}}>
           <div class="sr-only">
-            <.link navigate={~p"/events/#{@event}/batches/#{batch}"}>Show</.link>
+            <.link navigate={~p"/events/#{@event}/batches/#{batch}"}>Ver</.link>
           </div>
-          <.link navigate={~p"/events/#{@event}/batches/#{batch}/edit"}>Edit</.link>
+          <.link navigate={~p"/events/#{@event}/batches/#{batch}/edit"}>Editar</.link>
         </:action>
+
         <:action :let={{id, batch}}>
           <.link
             phx-click={JS.push("delete", value: %{id: batch.id}) |> hide("##{id}")}
-            data-confirm="Are you sure?"
+            data-confirm="Tem certeza?"
           >
-            Delete
+            Excluir
           </.link>
         </:action>
       </.table>
@@ -52,7 +55,7 @@ defmodule CertfyWeb.BatchLive.Index do
 
     {:ok,
      socket
-     |> assign(:page_title, "Listing Batches")
+     |> assign(:page_title, "Lotes")
      |> stream(:batches, list_batches(socket.assigns.current_scope, socket.assigns.event))}
   end
 

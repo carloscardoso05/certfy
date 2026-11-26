@@ -8,27 +8,31 @@ defmodule CertfyWeb.BatchLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Batch {@batch.id}
-        <:subtitle>This is a batch record from your database.</:subtitle>
+        Lote {@batch.id}
+        <:subtitle>Este é um registro de lote do seu banco de dados.</:subtitle>
+
         <:actions>
           <.button navigate={~p"/events/#{@event}/batches"}>
             <.icon name="hero-arrow-left" />
           </.button>
+
           <.button navigate={~p"/events/#{@event}/batches/#{@batch}/participants"}>
-            <.icon name="hero-users" /> Participants
+            <.icon name="hero-users" /> Participantes
           </.button>
+
           <.button
             variant="primary"
             navigate={~p"/events/#{@event}/batches/#{@batch}/edit?return_to=show"}
           >
-            <.icon name="hero-pencil-square" /> Edit batch
+            <.icon name="hero-pencil-square" /> Editar lote
           </.button>
         </:actions>
       </.header>
 
       <.list>
-        <:item title="Name">{@batch.name}</:item>
-        <:item title="Extra data">{map_size(@batch.extra_data || %{})}</:item>
+        <:item title="Nome">{@batch.name}</:item>
+
+        <:item title="Dados adicionais">{map_size(@batch.extra_data || %{})}</:item>
       </.list>
     </Layouts.app>
     """
@@ -42,7 +46,7 @@ defmodule CertfyWeb.BatchLive.Show do
 
     {:ok,
      socket
-     |> assign(:page_title, "Show Batch")
+     |> assign(:page_title, "Lote")
      |> assign(
        :batch,
        Events.get_batch!(socket.assigns.current_scope, socket.assigns.event, id)
@@ -63,7 +67,7 @@ defmodule CertfyWeb.BatchLive.Show do
       ) do
     {:noreply,
      socket
-     |> put_flash(:error, "The current batch was deleted.")
+     |> put_flash(:error, "O lote atual foi excluído.")
      |> push_navigate(to: ~p"/events/#{socket.assigns.event}/batches")}
   end
 

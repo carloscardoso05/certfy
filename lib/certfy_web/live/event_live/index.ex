@@ -8,10 +8,10 @@ defmodule CertfyWeb.EventLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Listing Events
+        Eventos
         <:actions>
           <.button variant="primary" navigate={~p"/events/new"}>
-            <.icon name="hero-plus" /> New Event
+            <.icon name="hero-plus" /> Novo evento
           </.button>
         </:actions>
       </.header>
@@ -21,25 +21,29 @@ defmodule CertfyWeb.EventLive.Index do
         rows={@streams.events}
         row_click={fn {_id, event} -> JS.navigate(~p"/events/#{event}") end}
       >
-        <:col :let={{_id, event}} label="Name">{event.name}</:col>
+        <:col :let={{_id, event}} label="Nome">{event.name}</:col>
+
         <:col :let={{_id, event}} label="Tem template?">
           {if event.template_path, do: "Sim", else: "Não"}
         </:col>
-        <:col :let={{_id, event}} label="Extra data">
+
+        <:col :let={{_id, event}} label="Dados adicionais">
           {map_size(event.extra_data || %{})}
         </:col>
+
         <:action :let={{_id, event}}>
           <div class="sr-only">
-            <.link navigate={~p"/events/#{event}"}>Show</.link>
+            <.link navigate={~p"/events/#{event}"}>Ver</.link>
           </div>
-          <.link navigate={~p"/events/#{event}/edit"}>Edit</.link>
+          <.link navigate={~p"/events/#{event}/edit"}>Editar</.link>
         </:action>
+
         <:action :let={{id, event}}>
           <.link
             phx-click={JS.push("delete", value: %{id: event.id}) |> hide("##{id}")}
-            data-confirm="Are you sure?"
+            data-confirm="Tem certeza?"
           >
-            Delete
+            Excluir
           </.link>
         </:action>
       </.table>
@@ -55,7 +59,7 @@ defmodule CertfyWeb.EventLive.Index do
 
     {:ok,
      socket
-     |> assign(:page_title, "Listing Events")
+     |> assign(:page_title, "Eventos")
      |> stream(:events, list_events(socket.assigns.current_scope))}
   end
 

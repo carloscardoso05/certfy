@@ -24,6 +24,9 @@ config :certfy,
   ecto_repos: [Certfy.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# Configure Gettext (mensagens de erro em pt-BR)
+config :certfy, CertfyWeb.Gettext, default_locale: "pt_BR"
+
 # Configure the endpoint
 config :certfy, CertfyWeb.Endpoint,
   url: [host: "localhost"],

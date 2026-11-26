@@ -15,7 +15,7 @@ defmodule CertfyWeb.EventLive.Form do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         {@page_title}
-        <:subtitle>Use this form to manage event records in your database.</:subtitle>
+        <:subtitle>Use este formulário para gerenciar os eventos do seu banco de dados.</:subtitle>
       </.header>
 
       <.form
@@ -25,19 +25,21 @@ defmodule CertfyWeb.EventLive.Form do
         phx-submit="save"
         phx-drop-target={@uploads.template.ref}
       >
-        <.input field={@form[:name]} type="text" label="Name" />
-
+        <.input field={@form[:name]} type="text" label="Nome" />
         <div class="mt-4">
-          <label class="label" for={@uploads.template.ref}>Template file (.pptx)</label>
+          <label class="label" for={@uploads.template.ref}>Arquivo de template (.pptx)</label>
           <.live_file_input upload={@uploads.template} />
           <p :if={@event.template_path} class="mt-2 text-sm">
-            Template already uploaded.
+            Template já enviado.
           </p>
+
           <p :for={error <- upload_errors(@uploads.template)} class="mt-2 text-sm text-error">
             {upload_error_to_string(error)}
           </p>
+
           <div :for={entry <- @uploads.template.entries}>
             <p class="mt-2 text-sm">{entry.client_name} ({entry.progress}%)</p>
+
             <p
               :for={error <- upload_errors(@uploads.template, entry)}
               class="mt-2 text-sm text-error"
@@ -48,8 +50,8 @@ defmodule CertfyWeb.EventLive.Form do
         </div>
 
         <footer>
-          <.button phx-disable-with="Saving..." variant="primary">Save Event</.button>
-          <.button navigate={return_path(@current_scope, @return_to, @event)}>Cancel</.button>
+          <.button phx-disable-with="Salvando..." variant="primary">Salvar evento</.button>
+          <.button navigate={return_path(@current_scope, @return_to, @event)}>Cancelar</.button>
         </footer>
       </.form>
     </Layouts.app>
@@ -76,7 +78,7 @@ defmodule CertfyWeb.EventLive.Form do
     event = Events.get_event!(socket.assigns.current_scope, id)
 
     socket
-    |> assign(:page_title, "Edit Event")
+    |> assign(:page_title, "Editar evento")
     |> assign(:event, event)
     |> assign(:form, to_form(Events.change_event(socket.assigns.current_scope, event)))
   end
@@ -85,7 +87,7 @@ defmodule CertfyWeb.EventLive.Form do
     event = %Event{user_id: socket.assigns.current_scope.user.id}
 
     socket
-    |> assign(:page_title, "New Event")
+    |> assign(:page_title, "Novo evento")
     |> assign(:event, event)
     |> assign(:form, to_form(Events.change_event(socket.assigns.current_scope, event)))
   end
@@ -120,7 +122,7 @@ defmodule CertfyWeb.EventLive.Form do
       {:ok, event} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Event updated successfully")
+         |> put_flash(:info, "Evento atualizado com sucesso.")
          |> push_navigate(
            to: return_path(socket.assigns.current_scope, socket.assigns.return_to, event)
          )}
@@ -137,7 +139,7 @@ defmodule CertfyWeb.EventLive.Form do
       {:ok, event} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Event created successfully")
+         |> put_flash(:info, "Evento criado com sucesso.")
          |> push_navigate(
            to: return_path(socket.assigns.current_scope, socket.assigns.return_to, event)
          )}
@@ -172,10 +174,10 @@ defmodule CertfyWeb.EventLive.Form do
 
     case results do
       [{:error, :not_accepted}] ->
-        {:error, "Only #{@template_extension} files are accepted."}
+        {:error, "Apenas arquivos #{@template_extension} são aceitos."}
 
       [{:error, _reason}] ->
-        {:error, "Could not upload the template file."}
+        {:error, "Não foi possível enviar o arquivo de template."}
 
       [key] ->
         {:ok, key}
@@ -184,7 +186,7 @@ defmodule CertfyWeb.EventLive.Form do
         {:ok, nil}
 
       _results ->
-        {:error, "Could not upload the template file."}
+        {:error, "Não foi possível enviar o arquivo de template."}
     end
   end
 
@@ -217,18 +219,18 @@ defmodule CertfyWeb.EventLive.Form do
   end
 
   defp upload_error_to_string(:too_large) do
-    "File is too large (max #{div(@max_template_size, 1_000_000)} MB)"
+    "O arquivo é muito grande (máximo de #{div(@max_template_size, 1_000_000)} MB)"
   end
 
   defp upload_error_to_string(:not_accepted) do
-    "Only #{@template_extension} files are accepted"
+    "Apenas arquivos #{@template_extension} são aceitos"
   end
 
-  defp upload_error_to_string(:too_many_files), do: "Only one file is allowed"
-  defp upload_error_to_string(:external_client_failure), do: "Upload failed"
+  defp upload_error_to_string(:too_many_files), do: "Apenas um arquivo é permitido"
+  defp upload_error_to_string(:external_client_failure), do: "Falha no envio"
 
-  defp upload_error_to_string({:writer_failure, _reason}), do: "Upload failed"
-  defp upload_error_to_string(error), do: "Upload error: #{inspect(error)}"
+  defp upload_error_to_string({:writer_failure, _reason}), do: "Falha no envio"
+  defp upload_error_to_string(error), do: "Erro no envio: #{inspect(error)}"
 
   defp return_path(_scope, "index", _event), do: ~p"/events"
   defp return_path(_scope, "show", event), do: ~p"/events/#{event}"

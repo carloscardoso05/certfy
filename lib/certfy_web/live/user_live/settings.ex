@@ -11,8 +11,8 @@ defmodule CertfyWeb.UserLive.Settings do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="text-center">
         <.header>
-          Account Settings
-          <:subtitle>Manage your account email address and password settings</:subtitle>
+          Configurações da conta
+          <:subtitle>Gerencie o e-mail e a senha da sua conta</:subtitle>
         </.header>
       </div>
 
@@ -20,16 +20,14 @@ defmodule CertfyWeb.UserLive.Settings do
         <.input
           field={@email_form[:email]}
           type="email"
-          label="Email"
+          label="E-mail"
           autocomplete="username"
           spellcheck="false"
           required
         />
-        <.button variant="primary" phx-disable-with="Changing...">Change Email</.button>
+        <.button variant="primary" phx-disable-with="Alterando...">Alterar e-mail</.button>
       </.form>
-
       <div class="divider" />
-
       <.form
         for={@password_form}
         id="password_form"
@@ -49,7 +47,7 @@ defmodule CertfyWeb.UserLive.Settings do
         <.input
           field={@password_form[:password]}
           type="password"
-          label="New password"
+          label="Nova senha"
           autocomplete="new-password"
           spellcheck="false"
           required
@@ -57,12 +55,12 @@ defmodule CertfyWeb.UserLive.Settings do
         <.input
           field={@password_form[:password_confirmation]}
           type="password"
-          label="Confirm new password"
+          label="Confirmar nova senha"
           autocomplete="new-password"
           spellcheck="false"
         />
-        <.button variant="primary" phx-disable-with="Saving...">
-          Save Password
+        <.button variant="primary" phx-disable-with="Salvando...">
+          Salvar senha
         </.button>
       </.form>
     </Layouts.app>
@@ -74,10 +72,10 @@ defmodule CertfyWeb.UserLive.Settings do
     socket =
       case Accounts.update_user_email(socket.assigns.current_scope.user, token) do
         {:ok, _user} ->
-          put_flash(socket, :info, "Email changed successfully.")
+          put_flash(socket, :info, "E-mail alterado com sucesso.")
 
         {:error, _} ->
-          put_flash(socket, :error, "Email change link is invalid or it has expired.")
+          put_flash(socket, :error, "O link de alteração de e-mail é inválido ou expirou.")
       end
 
     {:ok, push_navigate(socket, to: ~p"/users/settings")}
@@ -124,7 +122,7 @@ defmodule CertfyWeb.UserLive.Settings do
           &url(~p"/users/settings/confirm-email/#{&1}")
         )
 
-        info = "A link to confirm your email change has been sent to the new address."
+        info = "Um link para confirmar a alteração de e-mail foi enviado para o novo endereço."
         {:noreply, socket |> put_flash(:info, info)}
 
       changeset ->

@@ -8,13 +8,13 @@ defmodule CertfyWeb.ParticipantLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Listing Participants
+        Participantes
         <:actions>
           <.button
             variant="primary"
             navigate={~p"/events/#{@event}/batches/#{@batch}/participants/new"}
           >
-            <.icon name="hero-plus" /> New Participant
+            <.icon name="hero-plus" /> Novo participante
           </.button>
         </:actions>
       </.header>
@@ -28,27 +28,32 @@ defmodule CertfyWeb.ParticipantLive.Index do
           end
         }
       >
-        <:col :let={{_id, participant}} label="Name">{participant.name}</:col>
-        <:col :let={{_id, participant}} label="Email">{participant.email}</:col>
-        <:col :let={{_id, participant}} label="Extra data">
+        <:col :let={{_id, participant}} label="Nome">{participant.name}</:col>
+
+        <:col :let={{_id, participant}} label="E-mail">{participant.email}</:col>
+
+        <:col :let={{_id, participant}} label="Dados adicionais">
           {map_size(participant.extra_data || %{})}
         </:col>
+
         <:action :let={{_id, participant}}>
           <div class="sr-only">
             <.link navigate={~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}"}>
-              Show
+              Ver
             </.link>
           </div>
+
           <.link navigate={~p"/events/#{@event}/batches/#{@batch}/participants/#{participant}/edit"}>
-            Edit
+            Editar
           </.link>
         </:action>
+
         <:action :let={{id, participant}}>
           <.link
             phx-click={JS.push("delete", value: %{id: participant.id}) |> hide("##{id}")}
-            data-confirm="Are you sure?"
+            data-confirm="Tem certeza?"
           >
-            Delete
+            Excluir
           </.link>
         </:action>
       </.table>
@@ -64,7 +69,7 @@ defmodule CertfyWeb.ParticipantLive.Index do
 
     {:ok,
      socket
-     |> assign(:page_title, "Listing Participants")
+     |> assign(:page_title, "Participantes")
      |> stream(
        :participants,
        list_participants(socket.assigns.current_scope, socket.assigns.batch)

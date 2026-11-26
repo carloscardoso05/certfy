@@ -29,7 +29,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
     } do
       {:ok, _index_live, html} = live(conn, ~p"/events/#{event}/batches/#{batch}/participants")
 
-      assert html =~ "Listing Participants"
+      assert html =~ "Participantes"
       assert html =~ participant.name
     end
 
@@ -54,18 +54,18 @@ defmodule CertfyWeb.ParticipantLiveTest do
 
       assert {:ok, form_live, _} =
                index_live
-               |> element("a", "New Participant")
+               |> element("a", "Novo participante")
                |> render_click()
                |> follow_redirect(
                  conn,
                  ~p"/events/#{event}/batches/#{batch}/participants/new"
                )
 
-      assert render(form_live) =~ "New Participant"
+      assert render(form_live) =~ "Novo participante"
 
       assert form_live
              |> form("#participant-form", participant: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, index_live, _html} =
                form_live
@@ -74,7 +74,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
                |> follow_redirect(conn, ~p"/events/#{event}/batches/#{batch}/participants")
 
       html = render(index_live)
-      assert html =~ "Participant created successfully"
+      assert html =~ "Participante criado com sucesso."
       assert html =~ "some name"
     end
 
@@ -88,18 +88,18 @@ defmodule CertfyWeb.ParticipantLiveTest do
 
       assert {:ok, form_live, _html} =
                index_live
-               |> element("#participants-#{participant.id} a", "Edit")
+               |> element("#participants-#{participant.id} a", "Editar")
                |> render_click()
                |> follow_redirect(
                  conn,
                  ~p"/events/#{event}/batches/#{batch}/participants/#{participant}/edit"
                )
 
-      assert render(form_live) =~ "Edit Participant"
+      assert render(form_live) =~ "Editar participante"
 
       assert form_live
              |> form("#participant-form", participant: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, index_live, _html} =
                form_live
@@ -108,7 +108,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
                |> follow_redirect(conn, ~p"/events/#{event}/batches/#{batch}/participants")
 
       html = render(index_live)
-      assert html =~ "Participant updated successfully"
+      assert html =~ "Participante atualizado com sucesso."
       assert html =~ "some updated name"
     end
 
@@ -121,7 +121,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
       {:ok, index_live, _html} = live(conn, ~p"/events/#{event}/batches/#{batch}/participants")
 
       assert index_live
-             |> element("#participants-#{participant.id} a", "Delete")
+             |> element("#participants-#{participant.id} a", "Excluir")
              |> render_click()
 
       refute has_element?(index_live, "#participants-#{participant.id}")
@@ -140,7 +140,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
       {:ok, _show_live, html} =
         live(conn, ~p"/events/#{event}/batches/#{batch}/participants/#{participant}")
 
-      assert html =~ "Show Participant"
+      assert html =~ "Participante"
       assert html =~ participant.name
     end
 
@@ -155,18 +155,18 @@ defmodule CertfyWeb.ParticipantLiveTest do
 
       assert {:ok, form_live, _} =
                show_live
-               |> element("a", "Edit")
+               |> element("a", "Editar")
                |> render_click()
                |> follow_redirect(
                  conn,
                  ~p"/events/#{event}/batches/#{batch}/participants/#{participant}/edit?return_to=show"
                )
 
-      assert render(form_live) =~ "Edit Participant"
+      assert render(form_live) =~ "Editar participante"
 
       assert form_live
              |> form("#participant-form", participant: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, show_live, _html} =
                form_live
@@ -178,7 +178,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
                )
 
       html = render(show_live)
-      assert html =~ "Participant updated successfully"
+      assert html =~ "Participante atualizado com sucesso."
       assert html =~ "some updated name"
     end
   end

@@ -22,7 +22,7 @@ defmodule CertfyWeb.EventLiveTest do
     test "lists all events", %{conn: conn, event: event} do
       {:ok, _index_live, html} = live(conn, ~p"/events")
 
-      assert html =~ "Listing Events"
+      assert html =~ "Eventos"
       assert html =~ event.name
       assert html =~ "Tem template?"
     end
@@ -32,15 +32,15 @@ defmodule CertfyWeb.EventLiveTest do
 
       assert {:ok, form_live, _} =
                index_live
-               |> element("a", "New Event")
+               |> element("a", "Novo evento")
                |> render_click()
                |> follow_redirect(conn, ~p"/events/new")
 
-      assert render(form_live) =~ "New Event"
+      assert render(form_live) =~ "Novo evento"
 
       assert form_live
              |> form("#event-form", event: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, index_live, _html} =
                form_live
@@ -49,7 +49,7 @@ defmodule CertfyWeb.EventLiveTest do
                |> follow_redirect(conn, ~p"/events")
 
       html = render(index_live)
-      assert html =~ "Event created successfully"
+      assert html =~ "Evento criado com sucesso."
       assert html =~ "some name"
     end
 
@@ -58,7 +58,7 @@ defmodule CertfyWeb.EventLiveTest do
 
       assert {:ok, form_live, _} =
                index_live
-               |> element("a", "New Event")
+               |> element("a", "Novo evento")
                |> render_click()
                |> follow_redirect(conn, ~p"/events/new")
 
@@ -96,15 +96,15 @@ defmodule CertfyWeb.EventLiveTest do
 
       assert {:ok, form_live, _html} =
                index_live
-               |> element("#events-#{event.id} a", "Edit")
+               |> element("#events-#{event.id} a", "Editar")
                |> render_click()
                |> follow_redirect(conn, ~p"/events/#{event}/edit")
 
-      assert render(form_live) =~ "Edit Event"
+      assert render(form_live) =~ "Editar evento"
 
       assert form_live
              |> form("#event-form", event: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, index_live, _html} =
                form_live
@@ -113,14 +113,14 @@ defmodule CertfyWeb.EventLiveTest do
                |> follow_redirect(conn, ~p"/events")
 
       html = render(index_live)
-      assert html =~ "Event updated successfully"
+      assert html =~ "Evento atualizado com sucesso."
       assert html =~ "some updated name"
     end
 
     test "deletes event in listing", %{conn: conn, event: event} do
       {:ok, index_live, _html} = live(conn, ~p"/events")
 
-      assert index_live |> element("#events-#{event.id} a", "Delete") |> render_click()
+      assert index_live |> element("#events-#{event.id} a", "Excluir") |> render_click()
       refute has_element?(index_live, "#events-#{event.id}")
     end
   end
@@ -131,7 +131,7 @@ defmodule CertfyWeb.EventLiveTest do
     test "displays event", %{conn: conn, event: event} do
       {:ok, _show_live, html} = live(conn, ~p"/events/#{event}")
 
-      assert html =~ "Show Event"
+      assert html =~ "Evento"
       assert html =~ event.name
     end
 
@@ -140,15 +140,15 @@ defmodule CertfyWeb.EventLiveTest do
 
       assert {:ok, form_live, _} =
                show_live
-               |> element("a", "Edit")
+               |> element("a", "Editar")
                |> render_click()
                |> follow_redirect(conn, ~p"/events/#{event}/edit?return_to=show")
 
-      assert render(form_live) =~ "Edit Event"
+      assert render(form_live) =~ "Editar evento"
 
       assert form_live
              |> form("#event-form", event: @invalid_attrs)
-             |> render_change() =~ "can&#39;t be blank"
+             |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, show_live, _html} =
                form_live
@@ -157,7 +157,7 @@ defmodule CertfyWeb.EventLiveTest do
                |> follow_redirect(conn, ~p"/events/#{event}")
 
       html = render(show_live)
-      assert html =~ "Event updated successfully"
+      assert html =~ "Evento atualizado com sucesso."
       assert html =~ "some updated name"
     end
   end
