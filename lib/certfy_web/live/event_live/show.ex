@@ -2,6 +2,7 @@ defmodule CertfyWeb.EventLive.Show do
   use CertfyWeb, :live_view
 
   alias Certfy.Events
+  alias Certfy.Events.Batch
 
   @impl true
   def render(assigns) do
@@ -26,11 +27,7 @@ defmodule CertfyWeb.EventLive.Show do
             <.icon name="hero-pencil-square" /> Editar
           </.button>
 
-          <.button
-            :if={@batch_count > 0}
-            variant="primary"
-            navigate={~p"/batches/new?event_id=#{@event.id}"}
-          >
+          <.button variant="primary" phx-click="open_batch_modal">
             <.icon name="hero-plus" /> Novo lote
           </.button>
         </:actions>
@@ -76,7 +73,7 @@ defmodule CertfyWeb.EventLive.Show do
                 description="Crie o primeiro lote para começar a cadastrar participantes."
               >
                 <:action>
-                  <.button variant="primary" navigate={~p"/batches/new?event_id=#{@event.id}"}>
+                  <.button variant="primary" phx-click="open_batch_modal">
                     <.icon name="hero-plus" /> Criar primeiro lote
                   </.button>
                 </:action>
@@ -166,6 +163,28 @@ defmodule CertfyWeb.EventLive.Show do
           </div>
         </details>
       </div>
+
+      <.modal
+        :if={@modal == :new_batch}
+        id="batch-modal"
+        title="Novo lote"
+        description="Um lote é uma turma, dia ou categoria dentro do evento. Dados adicionais podem ser incluídos depois em Editar lote."
+      >
+        <.form
+          for={@batch_form}
+          id="modal-batch-form"
+          phx-change="validate_batch"
+          phx-submit="create_batch"
+          class="space-y-3"
+        >
+          <.input field={@batch_form[:name]} type="text" label="Nome" required />
+
+          <div class="flex justify-end gap-2">
+            <button type="button" class="btn btn-ghost" phx-click="close_modal">Cancelar</button>
+            <.button variant="primary" phx-disable-with="Criando...">Criar lote</.button>
+          </div>
+        </.form>
+      </.modal>
     </Layouts.app>
     """
   end
@@ -184,7 +203,44 @@ defmodule CertfyWeb.EventLive.Show do
     {:ok,
      socket
      |> assign(:page_title, "Evento")
+     |> assign(:modal, nil)
+     |> assign(:batch_form, to_form(%{}))
      |> assign_event_data(event)}
+  end
+
+  @impl true
+  def handle_event("open_batch_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:modal, :new_batch)
+     |> assign(:batch_form, to_form(batch_changeset(socket, %{})))}
+  end
+
+  def handle_event("close_modal", _params, socket) do
+    {:noreply, assign(socket, :modal, nil)}
+  end
+
+  def handle_event("validate_batch", %{"batch" => params}, socket) do
+    form =
+      socket
+      |> batch_changeset(params)
+      |> Map.put(:action, :validate)
+      |> to_form()
+
+    {:noreply, assign(socket, :batch_form, form)}
+  end
+
+  def handle_event("create_batch", %{"batch" => params}, socket) do
+    case Events.create_batch(socket.assigns.current_scope, socket.assigns.event, params) do
+      {:ok, batch} ->
+        {:noreply,
+         socket
+         |> assign(:modal, nil)
+         |> put_flash(:info, "Lote #{batch.name} criado.")}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :batch_form, to_form(changeset, action: :insert))}
+    end
   end
 
   @impl true
@@ -231,6 +287,13 @@ defmodule CertfyWeb.EventLive.Show do
     |> assign(:participant_count, participant_count)
     |> assign(:first_batch, first_batch)
     |> assign(:next_step, next_step(event, result.total, participant_count, first_batch))
+  end
+
+  defp batch_changeset(socket, params) do
+    event = socket.assigns.event
+
+    %Batch{user_id: event.user_id, event_id: event.id}
+    |> Batch.changeset(params, socket.assigns.current_scope)
   end
 
   defp next_step(event, batch_count, participant_count, first_batch) do

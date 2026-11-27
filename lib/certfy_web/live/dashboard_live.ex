@@ -16,7 +16,7 @@ defmodule CertfyWeb.DashboardLive do
             <.icon name="hero-question-mark-circle" /> Como funciona
           </.button>
 
-          <.button variant="primary" navigate={~p"/events/new"}>
+          <.button variant="primary" navigate={~p"/events?novo=1"}>
             <.icon name="hero-plus" /> Novo evento
           </.button>
         </:actions>
@@ -52,7 +52,7 @@ defmodule CertfyWeb.DashboardLive do
           </ol>
 
           <div class="mt-6 flex flex-wrap gap-2">
-            <.button variant="primary" navigate={~p"/events/new"}>
+            <.button variant="primary" navigate={~p"/events?novo=1"}>
               <.icon name="hero-plus" /> Criar primeiro evento
             </.button>
 

@@ -43,40 +43,38 @@ defmodule CertfyWeb.EventLiveTest do
       refute html =~ without_template.name
     end
 
-    test "saves new event", %{conn: conn} do
+    test "saves new event from the modal", %{conn: conn} do
       {:ok, index_live, _html} = live(conn, ~p"/events")
 
-      assert {:ok, form_live, _} =
-               index_live
-               |> element("a", "Novo evento")
-               |> render_click()
-               |> follow_redirect(conn, ~p"/events/new")
+      index_live |> element("button", "Novo evento") |> render_click()
+      assert has_element?(index_live, "#event-modal")
 
-      assert render(form_live) =~ "Novo evento"
-
-      assert form_live
-             |> form("#event-form", event: @invalid_attrs)
+      assert index_live
+             |> form("#modal-event-form", event: @invalid_attrs)
              |> render_change() =~ "não pode ficar em branco"
 
       assert {:ok, show_live, _html} =
-               form_live
-               |> form("#event-form", event: @create_attrs)
+               index_live
+               |> form("#modal-event-form", event: @create_attrs)
                |> render_submit()
                |> follow_redirect(conn)
 
       html = render(show_live)
-      assert html =~ "Evento criado com sucesso."
       assert html =~ "some name"
     end
 
-    test "saves extra data", %{conn: conn, scope: scope} do
+    test "closes the new event modal", %{conn: conn} do
       {:ok, index_live, _html} = live(conn, ~p"/events")
 
-      assert {:ok, form_live, _} =
-               index_live
-               |> element("a", "Novo evento")
-               |> render_click()
-               |> follow_redirect(conn, ~p"/events/new")
+      index_live |> element("button", "Novo evento") |> render_click()
+      assert has_element?(index_live, "#event-modal")
+
+      index_live |> element("#event-modal button[aria-label=Fechar]") |> render_click()
+      refute has_element?(index_live, "#event-modal")
+    end
+
+    test "saves extra data", %{conn: conn, scope: scope} do
+      {:ok, form_live, _html} = live(conn, ~p"/events/new")
 
       form_live
       |> element("#event-extra-data-add")
@@ -190,6 +188,33 @@ defmodule CertfyWeb.EventLiveTest do
 
       assert html =~ "Enviado"
       assert html =~ "Gerenciar modelo"
+    end
+
+    test "opens the new event modal from the URL parameter", %{conn: conn} do
+      {:ok, index_live, _html} = live(conn, ~p"/events?novo=1")
+
+      assert has_element?(index_live, "#event-modal")
+
+      index_live |> element("#event-modal button[aria-label=Fechar]") |> render_click()
+      refute has_element?(index_live, "#event-modal")
+      assert_patch(index_live, ~p"/events?sort=updated")
+    end
+
+    test "creates a batch from the modal", %{conn: conn, scope: scope, event: event} do
+      {:ok, show_live, _html} = live(conn, ~p"/events/#{event}")
+
+      show_live |> element("button", "Novo lote") |> render_click()
+      assert has_element?(show_live, "#batch-modal")
+
+      assert show_live
+             |> form("#modal-batch-form", batch: %{name: ""})
+             |> render_change() =~ "não pode ficar em branco"
+
+      html = show_live |> form("#modal-batch-form", batch: %{name: "Turma A"}) |> render_submit()
+
+      assert html =~ "Lote Turma A criado."
+      refute has_element?(show_live, "#batch-modal")
+      assert Enum.any?(Certfy.Events.list_batches(scope, event), &(&1.name == "Turma A"))
     end
 
     test "lets an admin open an event owned by another user", %{conn: conn} do

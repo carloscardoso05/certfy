@@ -427,6 +427,52 @@ defmodule CertfyWeb.CoreComponents do
   end
 
   @doc """
+  Renders a modal dialog controlled by the LiveView.
+
+  The LiveView must handle the `"close_modal"` event to clear its state.
+
+  ## Examples
+
+      <.modal :if={@modal == :invite} id="invite-modal" title="Convidar usuário">
+        ...
+      </.modal>
+  """
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :description, :string, default: nil
+  slot :inner_block, required: true
+
+  def modal(assigns) do
+    ~H"""
+    <dialog id={@id} class="modal" phx-hook="Modal" open aria-labelledby={"#{@id}-title"}>
+      <div class="modal-box w-11/12 max-w-lg border border-base-300">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 id={"#{@id}-title"} class="text-lg font-semibold">{@title}</h3>
+            <p :if={@description} class="mt-1 text-sm text-base-content/65">{@description}</p>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            phx-click="close_modal"
+            aria-label="Fechar"
+          >
+            <.icon name="hero-x-mark" class="size-4" />
+          </button>
+        </div>
+
+        <div class="mt-4">
+          {render_slot(@inner_block)}
+        </div>
+      </div>
+
+      <div class="modal-backdrop" phx-click="close_modal"></div>
+    </dialog>
+    """
+  end
+
+  @doc """
   Renders an empty state with an optional call to action.
   """
   attr :title, :string, required: true
