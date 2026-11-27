@@ -69,6 +69,8 @@ defmodule Certfy.MixProject do
       {:gen_smtp, "~> 1.3"},
       {:oban, "~> 2.24"},
       {:qr_code, "~> 3.2"},
+      {:nimble_csv, "~> 1.3"},
+      {:xlsx_reader, "~> 0.8.12"},
       {:req, "~> 0.5"},
       {:ex_aws, "~> 2.8"},
       {:ex_aws_s3, "~> 2.6"},

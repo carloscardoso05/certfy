@@ -499,5 +499,48 @@ defmodule Certfy.EventsTest do
       participant = participant_fixture(scope)
       assert %Ecto.Changeset{} = Events.change_participant(scope, participant)
     end
+
+    test "import_participants/3 inserts every valid row without deduplicating" do
+      scope = user_scope_fixture()
+      event = event_fixture(scope)
+      batch = batch_fixture(scope, event)
+
+      rows = [
+        %{
+          name: "Maria Silva",
+          email: "maria@example.com",
+          extra_data: %{"Cidade" => "Fortaleza"}
+        },
+        %{name: "Maria Silva", email: nil, extra_data: %{}},
+        %{name: "João Souza", email: "joao@example.com", extra_data: %{}}
+      ]
+
+      assert {:ok, 3} = Events.import_participants(scope, batch, rows)
+
+      participants = Events.list_participants(scope, batch)
+
+      assert length(participants) == 3
+      assert Enum.count(participants, &(&1.name == "Maria Silva")) == 2
+
+      maria = Enum.find(participants, &(&1.email == "maria@example.com"))
+      assert maria.extra_data == %{"Cidade" => "Fortaleza"}
+      assert maria.user_id == scope.user.id
+      assert maria.batch_id == batch.id
+
+      assert Enum.any?(participants, &(&1.email == nil))
+    end
+
+    test "import_participants/3 with another user's batch raises" do
+      scope = user_scope_fixture()
+      other_scope = user_scope_fixture()
+      event = event_fixture(scope)
+      batch = batch_fixture(scope, event)
+
+      assert_raise MatchError, fn ->
+        Events.import_participants(other_scope, batch, [
+          %{name: "Maria", email: nil, extra_data: %{}}
+        ])
+      end
+    end
   end
 end

@@ -12,6 +12,10 @@ defmodule CertfyWeb.ParticipantLive.Index do
         <:subtitle>Todos os participantes dos seus lotes.</:subtitle>
 
         <:actions>
+          <.button variant="soft" navigate={~p"/participants/import"}>
+            <.icon name="hero-table-cells" /> Importar planilha
+          </.button>
+
           <.button variant="primary" navigate={~p"/participants/new"}>
             <.icon name="hero-plus" /> Novo participante
           </.button>

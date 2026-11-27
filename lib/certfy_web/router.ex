@@ -82,6 +82,7 @@ defmodule CertfyWeb.Router do
       live "/batches/:id/edit", BatchLive.Form, :edit
 
       live "/participants", ParticipantLive.Index, :index
+      live "/participants/import", ParticipantLive.Import, :new
       live "/participants/new", ParticipantLive.Form, :new
       live "/participants/:id", ParticipantLive.Show, :show
       live "/participants/:id/edit", ParticipantLive.Form, :edit

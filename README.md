@@ -38,6 +38,16 @@ RustFS defaults match `docker-compose.yml`: `http://localhost:9000`,
 with `RUSTFS_SCHEME`, `RUSTFS_HOST`, `RUSTFS_PORT`, `RUSTFS_REGION`,
 `RUSTFS_ACCESS_KEY`, `RUSTFS_SECRET_KEY` and `RUSTFS_BUCKET`.
 
+## Participant import
+
+Participants can be imported from CSV or XLSX at `/participants/import` (also
+reachable from the batch page). Files are limited to 5 MB. Name and e-mail
+columns are detected automatically, the mapping can be adjusted in the preview,
+and the remaining columns become `extra_data` keys.
+
+Every valid row is imported without deduplication. Name is required (up to 160
+characters); an invalid e-mail is cleared instead of rejecting the row.
+
 ## Certificate e-mail
 
 Certificate delivery needs an SMTP server. Configure it with `SMTP_HOST`,

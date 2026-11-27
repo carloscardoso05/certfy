@@ -123,6 +123,10 @@ defmodule CertfyWeb.BatchLive.Show do
           <.button navigate={~p"/participants?batch_id=#{@batch.id}"} variant="soft">
             <.icon name="hero-users" /> Abrir participantes
           </.button>
+
+          <.button navigate={~p"/participants/import?batch_id=#{@batch.id}"} variant="soft">
+            <.icon name="hero-table-cells" /> Importar planilha
+          </.button>
         </.section>
       </.sheet>
     </Layouts.app>

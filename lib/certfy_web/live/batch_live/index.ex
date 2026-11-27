@@ -12,6 +12,10 @@ defmodule CertfyWeb.BatchLive.Index do
         <:subtitle>Todos os lotes dos seus eventos.</:subtitle>
 
         <:actions>
+          <.button variant="soft" navigate={~p"/participants/import"}>
+            <.icon name="hero-table-cells" /> Importar planilha
+          </.button>
+
           <.button variant="primary" navigate={~p"/batches/new"}>
             <.icon name="hero-plus" /> Novo lote
           </.button>

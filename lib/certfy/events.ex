@@ -593,6 +593,38 @@ defmodule Certfy.Events do
   end
 
   @doc """
+  Imports already validated participant rows into a batch.
+
+  Rows are expected to contain `:name`, `:email` and `:extra_data`. There is
+  no deduplication: every row is inserted.
+  """
+  def import_participants(%Scope{} = scope, %Batch{} = batch, rows) when is_list(rows) do
+    true = batch.user_id === scope.user.id
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    entries =
+      Enum.map(rows, fn row ->
+        %{
+          name: row.name,
+          email: row.email,
+          extra_data: row.extra_data || %{},
+          user_id: scope.user.id,
+          batch_id: batch.id,
+          inserted_at: now,
+          updated_at: now
+        }
+      end)
+
+    Repo.transaction(fn ->
+      entries
+      |> Enum.chunk_every(500)
+      |> Enum.each(fn chunk -> Repo.insert_all(Participant, chunk) end)
+
+      length(entries)
+    end)
+  end
+
+  @doc """
   Updates a participant.
 
   ## Examples
