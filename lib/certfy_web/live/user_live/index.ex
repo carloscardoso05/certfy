@@ -10,7 +10,7 @@ defmodule CertfyWeb.UserLive.Index do
     <Layouts.app flash={@flash} current_scope={@current_scope} nav={:users}>
       <.header>
         Usuários
-        <:subtitle>Gerencie quem tem acesso ao Certfy.</:subtitle>
+        <:subtitle>Gerencie quem tem acesso ao {Certfy.Branding.name()}.</:subtitle>
 
         <:actions>
           <.button variant="primary" phx-click="open_invite">

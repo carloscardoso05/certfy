@@ -1,13 +1,17 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-brand={Certfy.Branding.theme()}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <link rel="icon" type="image/svg+xml" href={~p"/images/favicon.svg"} />
+    <link
+      rel="icon"
+      type={Certfy.Branding.favicon_type()}
+      href={Certfy.Branding.favicon()}
+    />
     <.live_title
       default="Início"
-      suffix=" · Certfy"
+      suffix={" · " <> Certfy.Branding.name()}
       phx-no-format
     >{assigns[:page_title]}</.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />

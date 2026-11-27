@@ -88,7 +88,7 @@ defmodule CertfyWeb.EventLive.Template do
           <div>
             <p class="font-medium">Envie o arquivo</p>
             <p class="mt-1 text-sm text-base-content/65">
-              O Certfy confere as tags encontradas e avisa se alguma estiver malformada.
+              O {Certfy.Branding.name()} confere as tags encontradas e avisa se alguma estiver malformada.
             </p>
           </div>
         </div>
@@ -203,7 +203,7 @@ defmodule CertfyWeb.EventLive.Template do
           <.sheet>
             <.section
               title="Como usar as tags"
-              description="As tags são espaços reservados que o Certfy preenche na geração."
+              description={"As tags são espaços reservados que o #{Certfy.Branding.name()} preenche na geração."}
             >
               <p class="text-sm text-base-content/70">
                 Copie a tag e cole no PowerPoint, no lugar onde o valor deve aparecer. Você pode

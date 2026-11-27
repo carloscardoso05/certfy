@@ -6,8 +6,10 @@ defmodule CertfyWeb.UserLive.LoginTest do
 
   describe "login page" do
     test "renders login page", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/users/log-in")
+      {:ok, lv, html} = live(conn, ~p"/users/log-in")
 
+      assert has_element?(lv, "#brand-logo")
+      assert has_element?(lv, "#brand-name")
       assert html =~ "Entrar"
       assert html =~ "O acesso é por convite"
       assert html =~ "Entrar com e-mail"

@@ -126,6 +126,67 @@
   --noise: 0;
 }
 
+/* Certifique identity: FADESP-inspired orange and navy. These values sit on
+   top of the daisyUI light/dark themes, so switching `BRAND_THEME` changes
+   colours only, never layout or component behaviour. The primary orange is
+   darkened from the brand #DD6B3B so text and buttons keep AA contrast; the
+   original hue stays on the mark through --color-brand. */
+:root {
+  --color-brand: var(--color-primary);
+}
+
+.brand-mark {
+  color: var(--color-brand);
+}
+
+html[data-brand="certifique"]:not([data-theme="dark"]) {
+  --color-base-100: #ffffff;
+  --color-base-200: #f7f6f3;
+  --color-base-300: #e6e2dc;
+  --color-base-content: #1f2933;
+  --color-primary: #b84e22;
+  --color-primary-content: #ffffff;
+  --color-brand: #dd6b3b;
+  --color-secondary: #00264c;
+  --color-secondary-content: #ffffff;
+  --color-accent: #0c4da2;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1f2933;
+  --color-neutral-content: #ffffff;
+  --color-info: #0c4da2;
+  --color-info-content: #ffffff;
+  --color-success: #2e7d32;
+  --color-success-content: #ffffff;
+  --color-warning: #b45309;
+  --color-warning-content: #ffffff;
+  --color-error: #b3261e;
+  --color-error-content: #ffffff;
+}
+
+html[data-brand="certifique"][data-theme="dark"] {
+  --color-base-100: #1e1a17;
+  --color-base-200: #12100e;
+  --color-base-300: #322c26;
+  --color-base-content: #f4f0ea;
+  --color-primary: #f08a5d;
+  --color-primary-content: #1a130f;
+  --color-brand: #f08a5d;
+  --color-secondary: #cbbcad;
+  --color-secondary-content: #1a130f;
+  --color-accent: #8fb6e6;
+  --color-accent-content: #12100e;
+  --color-neutral: #322c26;
+  --color-neutral-content: #f4f0ea;
+  --color-info: #2f557f;
+  --color-info-content: #f4f0ea;
+  --color-success: #63cf8a;
+  --color-success-content: #12100e;
+  --color-warning: #f3c05e;
+  --color-warning-content: #12100e;
+  --color-error: #f28a82;
+  --color-error-content: #12100e;
+}
+
 /* Add variants based on LiveView classes */
 @custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);

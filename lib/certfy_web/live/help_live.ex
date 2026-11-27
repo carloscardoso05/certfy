@@ -84,8 +84,7 @@ defmodule CertfyWeb.HelpLive do
         <.sheet>
           <.section title="O que é o modelo do certificado?">
             <p class="text-sm text-base-content/70">
-              É um arquivo .pptx com espaços marcados por tags, como <code class="rounded bg-base-200 px-1 py-0.5">{@sample_tag}</code>. O Certfy
-              preenche esses espaços com os dados do evento, do lote e do participante.
+              É um arquivo .pptx com espaços marcados por tags, como <code class="rounded bg-base-200 px-1 py-0.5">{@sample_tag}</code>. O {Certfy.Branding.name()} preenche esses espaços com os dados do evento, do lote e do participante.
             </p>
 
             <p class="mt-3 text-sm text-base-content/70">

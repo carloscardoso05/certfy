@@ -86,6 +86,7 @@ defmodule CertfyWeb do
       import Phoenix.HTML
       # Core UI components
       import CertfyWeb.CoreComponents
+      import CertfyWeb.Components.Brand, only: [brand_logo: 1, brand_name: 1]
       import CertfyWeb.Components.KeyValue, only: [key_value: 1, key_value_list: 1]
       import CertfyWeb.Components.Navigation
       import CertfyWeb.Components.SearchableSelect, only: [searchable_select: 1]

@@ -9,15 +9,8 @@ defmodule CertfyWeb.UserLive.Login do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="mx-auto w-full max-w-md">
         <div class="mb-6 flex items-center justify-center gap-2">
-          <svg viewBox="0 0 32 32" class="h-9 w-9 text-primary" aria-hidden="true">
-            <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.25" />
-            <circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="1" />
-            <path
-              d="M20.4 12.6a5.2 5.2 0 0 0-4-1.7c-2.9 0-4.9 2.2-4.9 5.1s2 5.1 4.9 5.1c1.6 0 2.9-.6 3.9-1.7l-1.9-1.5c-.5.5-1.1.8-1.9.8-1.3 0-2.2-.9-2.2-2.7s.9-2.7 2.2-2.7c.8 0 1.4.3 1.9.8z"
-              fill="currentColor"
-            />
-          </svg>
-          <span class="text-xl font-semibold tracking-tight">Certfy</span>
+          <.brand_logo class="h-10 w-10 brand-mark" />
+          <.brand_name class="text-xl font-semibold tracking-tight" />
         </div>
 
         <div class="card bg-base-100 shadow-sm">
