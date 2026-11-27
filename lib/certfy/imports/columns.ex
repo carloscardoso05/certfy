@@ -55,11 +55,13 @@ defmodule Certfy.Imports.Columns do
     "cidade"
   ]
 
-  def detect(rows) when is_list(rows) do
+  def detect(rows, opts \\ [])
+
+  def detect(rows, opts) when is_list(rows) do
     if rows == [] do
       {:error, :empty}
     else
-      header_index = detect_header_row(rows)
+      header_index = header_index(rows, Keyword.get(opts, :header, :auto))
 
       {headers, data} =
         case header_index do
@@ -142,9 +144,10 @@ defmodule Certfy.Imports.Columns do
   defp build_columns(headers, header?, data) do
     headers
     |> Enum.with_index()
+    |> Enum.reject(fn {_header, index} -> blank_column?(data, index) end)
     |> Enum.map(fn {header, index} ->
       label =
-        if header? do
+        if header? and String.trim(header) != "" do
           String.trim(header)
         else
           "Coluna #{column_letter(index)}"
@@ -159,6 +162,10 @@ defmodule Certfy.Imports.Columns do
         samples: samples(data, index)
       }
     end)
+  end
+
+  defp blank_column?(data, index) do
+    Enum.all?(data, fn row -> String.trim(Enum.at(row, index, "")) == "" end)
   end
 
   defp resolve_roles(columns, data, _headerless?) do
@@ -247,25 +254,39 @@ defmodule Certfy.Imports.Columns do
     Regex.match?(~r/\A[^@,;\s]+@[^@,;\s]+\z/u, String.trim(value))
   end
 
+  # The first row can be forced as the header row (`header: true`), forced as
+  # data (`header: false`) or detected automatically (`header: :auto`).
+  defp header_index(_rows, true), do: 0
+  defp header_index(_rows, false), do: nil
+  defp header_index(rows, _auto), do: detect_header_row(rows)
+
   defp detect_header_row(rows) do
     rows
     |> Enum.take(10)
     |> Enum.with_index()
     |> Enum.find_value(fn {row, index} ->
-      hits =
-        Enum.count(row, fn cell ->
-          normalized = normalize(cell)
-
-          Enum.any?(@name_synonyms ++ @email_synonyms, fn synonym ->
-            normalized_synonym = normalize(synonym)
-
-            normalized == normalized_synonym or
-              String.contains?(normalized, normalized_synonym)
-          end)
-        end)
+      hits = Enum.count(row, &header_cell?/1)
 
       if hits > 0, do: index
     end)
+  end
+
+  # Cells with e-mails or long values are data, not column titles. This avoids
+  # treating a headerless row as a header just because an e-mail contains
+  # a synonym such as "mail".
+  defp header_cell?(cell) do
+    text = cell |> to_string() |> String.trim()
+    normalized = normalize(text)
+
+    text != "" and
+      not String.contains?(text, "@") and
+      String.length(text) <= 60 and
+      Enum.any?(@name_synonyms ++ @email_synonyms, fn synonym ->
+        normalized_synonym = normalize(synonym)
+
+        normalized == normalized_synonym or
+          String.contains?(normalized, normalized_synonym)
+      end)
   end
 
   defp header_labels(0), do: []

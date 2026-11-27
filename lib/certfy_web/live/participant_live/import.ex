@@ -165,6 +165,29 @@ defmodule CertfyWeb.ParticipantLive.Import do
             </div>
 
             <div class="rounded-box border border-base-300 bg-base-100">
+              <.section
+                title="Cabeçalho"
+                description="Indique o que a primeira linha da planilha contém."
+              >
+                <.form for={@header_form} id="header-form" phx-change="change_header">
+                  <select name="header" class="select select-bordered w-full max-w-sm">
+                    <option value="true" selected={@analysis.header_row != nil}>
+                      Títulos das colunas
+                    </option>
+                    <option value="false" selected={@analysis.header_row == nil}>
+                      Dados de um participante
+                    </option>
+                  </select>
+                </.form>
+
+                <p class="mt-2 text-sm text-base-content/60">
+                  Se a primeira linha for título, ela não vira participante. Caso contrário,
+                  ela entra como o primeiro registro.
+                </p>
+              </.section>
+            </div>
+
+            <div class="rounded-box border border-base-300 bg-base-100">
               <.section title="Colunas" description="Confira ou ajuste o papel de cada coluna.">
                 <.form
                   for={@mapping_form}
@@ -300,9 +323,11 @@ defmodule CertfyWeb.ParticipantLive.Import do
      |> assign(:step, :upload)
      |> assign(:batch_options, options)
      |> assign(:batch, nil)
+     |> assign(:rows, [])
      |> assign(:batch_form, to_form(%{}))
      |> assign(:upload_form, to_form(%{}))
      |> assign(:mapping_form, to_form(%{}))
+     |> assign(:header_form, to_form(%{}))
      |> assign(:columns, [])
      |> assign(:mapping_errors, [])
      |> assign(:plan, %{
@@ -370,11 +395,13 @@ defmodule CertfyWeb.ParticipantLive.Import do
                   {:noreply,
                    socket
                    |> assign(:step, :preview)
+                   |> assign(:rows, rows)
                    |> assign(:analysis, analysis)
                    |> assign(:columns, analysis.columns)
                    |> assign(:mapping_errors, errors)
                    |> assign(:plan, plan)
-                   |> assign(:mapping_form, to_form(%{}))}
+                   |> assign(:mapping_form, to_form(%{}))
+                   |> assign(:header_form, to_form(%{}))}
 
                 {:error, _} ->
                   {:noreply, put_flash(socket, :error, "A planilha está vazia.")}
@@ -387,6 +414,22 @@ defmodule CertfyWeb.ParticipantLive.Import do
         {:error, message} ->
           {:noreply, put_flash(socket, :error, message)}
       end
+    end
+  end
+
+  def handle_event("change_header", %{"header" => value}, socket) do
+    case Columns.detect(socket.assigns.rows, header: value == "true") do
+      {:ok, analysis} ->
+        {:noreply,
+         socket
+         |> assign(:analysis, analysis)
+         |> assign(:columns, analysis.columns)
+         |> assign(:mapping_errors, Columns.validation_errors(analysis.columns))
+         |> assign(:plan, build_plan(analysis))
+         |> assign(:mapping_form, to_form(%{}))}
+
+      {:error, _} ->
+        {:noreply, socket}
     end
   end
 
@@ -416,6 +459,7 @@ defmodule CertfyWeb.ParticipantLive.Import do
      socket
      |> assign(:step, :upload)
      |> assign(:analysis, nil)
+     |> assign(:rows, [])
      |> assign(:columns, [])
      |> assign(:mapping_errors, [])
      |> assign(:plan, %{

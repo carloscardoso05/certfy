@@ -123,6 +123,46 @@ defmodule CertfyWeb.ParticipantLive.ImportTest do
     assert participant.extra_data == %{"Sala" => "Fortaleza"}
   end
 
+  test "lets the user choose whether the first row is a header", %{
+    conn: conn,
+    scope: scope,
+    batch: batch
+  } do
+    content =
+      xlsx([
+        ["Maria Silva", "maria@gmail.com"],
+        ["João Souza", "joao@gmail.com"]
+      ])
+
+    {:ok, lv, _html} = live(conn, ~p"/participants/import?batch_id=#{batch.id}")
+
+    upload =
+      file_input(lv, "#import-upload-form", :planilha, [%{name: "lista.xlsx", content: content}])
+
+    render_upload(upload, "lista.xlsx")
+
+    html = lv |> element("#import-upload-form") |> render_submit()
+
+    assert html =~ "2 pronta(s)"
+    assert has_element?(lv, "#header-form")
+
+    html = lv |> element("#header-form") |> render_change(%{"header" => "true"})
+    assert html =~ "1 pronta(s)"
+
+    html = lv |> element("#header-form") |> render_change(%{"header" => "false"})
+    assert html =~ "2 pronta(s)"
+
+    lv |> element("button", "Importar 2 participante(s)") |> render_click()
+
+    names =
+      scope
+      |> Events.list_participants(batch)
+      |> Enum.map(& &1.name)
+      |> Enum.sort()
+
+    assert names == ["João Souza", "Maria Silva"]
+  end
+
   test "requires a batch before analyzing", %{conn: conn, scope: scope, batch: batch} do
     {:ok, lv, html} = live(conn, ~p"/participants/import")
 

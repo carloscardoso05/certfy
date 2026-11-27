@@ -176,6 +176,60 @@ defmodule Certfy.ImportsTest do
       assert Enum.at(analysis.columns, 26).label == "Coluna AA"
     end
 
+    test "drops fully blank columns" do
+      {:ok, analysis} =
+        Columns.detect([
+          ["Maria Silva", "maria@example.com", "", ""],
+          ["João Souza", "joao@example.com", "", ""]
+        ])
+
+      assert analysis.headerless?
+      assert Enum.map(analysis.columns, & &1.index) == [0, 1]
+      assert Columns.name_column(analysis.columns).index == 0
+      assert Columns.email_column(analysis.columns).index == 1
+      assert Columns.validation_errors(analysis.columns) == []
+    end
+
+    test "does not treat a row with e-mails as the header row" do
+      {:ok, analysis} =
+        Columns.detect([
+          ["Maria Silva", "maria@gmail.com"],
+          ["João Souza", "joao@gmail.com"]
+        ])
+
+      assert analysis.headerless?
+      assert analysis.header_row == nil
+      assert analysis.data |> hd() |> hd() == "Maria Silva"
+      assert Columns.name_column(analysis.columns).index == 0
+      assert Columns.email_column(analysis.columns).index == 1
+    end
+
+    test "keeps columns with values even when the header is empty" do
+      {:ok, analysis} =
+        Columns.detect([
+          ["", "E-mail"],
+          ["Maria Silva", "maria@example.com"]
+        ])
+
+      assert Enum.map(analysis.columns, & &1.index) == [0, 1]
+      assert Columns.name_column(analysis.columns).index == 0
+    end
+
+    test "forces the first row as header or as data" do
+      rows = [["Maria Silva", "maria@gmail.com"], ["João Souza", "joao@gmail.com"]]
+
+      {:ok, auto} = Columns.detect(rows)
+      assert auto.headerless?
+
+      {:ok, with_header} = Columns.detect(rows, header: true)
+      assert with_header.header_row == 0
+      assert with_header.data == [["João Souza", "joao@gmail.com"]]
+
+      {:ok, headerless} = Columns.detect(rows, header: false)
+      assert headerless.header_row == nil
+      assert headerless.data == rows
+    end
+
     test "set_kind keeps only one name and one email" do
       {:ok, analysis} =
         Columns.detect([
@@ -222,6 +276,27 @@ defmodule Certfy.ImportsTest do
       assert joao.row == 3
 
       assert [%{row: 4, message: "Nome é obrigatório"}] = plan.errors
+    end
+
+    test "imports a headerless sheet without blank extra columns" do
+      {:ok, analysis} =
+        Columns.detect([
+          ["Abraham Silva", "abraham@gmail.com", "", ""],
+          ["Maria Souza", "maria@gmail.com", "", ""]
+        ])
+
+      plan = ParticipantPlan.build(analysis.data, analysis.columns, -1)
+
+      assert plan.total == 2
+      assert length(plan.valid) == 2
+
+      [abraham, maria] = plan.valid
+      assert abraham.name == "Abraham Silva"
+      assert abraham.row == 1
+      assert abraham.email == "abraham@gmail.com"
+      assert abraham.extra_data == %{}
+      assert maria.extra_data == %{}
+      assert Columns.validation_errors(analysis.columns) == []
     end
 
     test "rejects names above 160 characters" do
