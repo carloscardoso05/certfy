@@ -126,8 +126,18 @@ Services:
 
 Optional: `POSTGRES_USER`, `POSTGRES_DB`, `POOL_SIZE`, `RUSTFS_BUCKET`,
 `RUSTFS_REGION`, `CERTIFICATE_FROM_EMAIL`, `CERTIFICATE_FROM_NAME`,
-`CERTFY_ADMIN_EMAIL`, `SMTP_*` (see `config/runtime.exs`) and the branding
-variables described in **Identidade visual**.
+`CERTFY_ADMIN_EMAIL`, `SMTP_*` (see `config/runtime.exs`), the branding
+variables described in **Identidade visual** and the access mode variables
+below.
+
+Access mode (all optional):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `FORCE_SSL` | `true` | Redirects HTTP to HTTPS and sends HSTS. Disable for plain HTTP. |
+| `PHX_SCHEME` | `https` | Scheme used to build absolute URLs (e-mails, links). |
+| `PHX_PORT` | `443` | Port used to build absolute URLs. |
+| `APP_PORT` | `4000` | Host port published by the compose (used without a domain). |
 
 `POSTGRES_PASSWORD` is interpolated into `DATABASE_URL`, so use a URL-safe
 password (letters, digits and `-_.~`) or set `DATABASE_URL` explicitly.
@@ -167,6 +177,20 @@ identity; never build one image per branch.
 
 Dokploy manages the network and project naming, so two deployments can share
 the same server without changes to this file.
+
+### Deploy without a domain (IP only)
+
+1. In the Dokploy **Environment** tab set
+   `FORCE_SSL=false`, `PHX_SCHEME=http`, `PHX_PORT=4000` and `APP_HOST` to the
+   server address (e.g. `192.168.0.50`).
+2. Keep the `ports:` mapping of the `app` service (`APP_PORT`, default `4000`)
+   and open that port in the firewall/security group.
+3. Access `http://<server>:4000`. `/health` stays excluded from the redirects.
+
+Without a domain there is no TLS: the connection and cookies travel in plain
+HTTP, so prefer an internal network or a VPN. When a domain is added later,
+remove `FORCE_SSL`/`PHX_SCHEME`/`PHX_PORT` (back to `https`/`443`), point the
+Dokploy domain to the app and drop the published port.
 
 To build and run the same compose locally:
 

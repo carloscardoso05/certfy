@@ -18,6 +18,10 @@ x-app: &app
 services:
   app:
     <<: *app
+    # Published for deployments without a domain (access by IP and port).
+    # Remove it when Dokploy routes a domain to this service.
+    ports:
+      - "${APP_PORT:-4000}:4000"
     environment:
       PHX_SERVER: "true"
       PORT: "4000"

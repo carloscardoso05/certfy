@@ -95,11 +95,19 @@ if config_env() == :prod do
       """
 
   host = System.get_env("PHX_HOST") || "example.com"
+  scheme = System.get_env("PHX_SCHEME", "https")
+  port = String.to_integer(System.get_env("PHX_PORT", "443"))
 
   config :certfy, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # Runtime switch for the HTTPS redirect/HSTS (CertfyWeb.SSLRedirect). Keep it
+  # enabled behind Traefik with TLS and disable it when the app is reached by IP
+  # over plain HTTP.
+  config :certfy, :force_ssl, System.get_env("FORCE_SSL", "true") in ~w(true 1)
+
   config :certfy, CertfyWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
+    url: [host: host, port: port, scheme: scheme],
+    check_origin: :conn,
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
