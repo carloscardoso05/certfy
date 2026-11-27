@@ -10,6 +10,14 @@ defmodule Certfy.Storage do
   """
   def put_template(key, body, content_type)
       when is_binary(key) and is_binary(body) and is_binary(content_type) do
+    put_object(key, body, content_type)
+  end
+
+  @doc """
+  Uploads an arbitrary object and returns its key.
+  """
+  def put_object(key, body, content_type)
+      when is_binary(key) and is_binary(body) and is_binary(content_type) do
     with :ok <- ensure_bucket(),
          {:ok, _response} <-
            bucket()
@@ -22,7 +30,12 @@ defmodule Certfy.Storage do
   @doc """
   Downloads a template file by its object key.
   """
-  def get_template(key) when is_binary(key) do
+  def get_template(key) when is_binary(key), do: get_object(key)
+
+  @doc """
+  Downloads an object by its key.
+  """
+  def get_object(key) when is_binary(key) do
     case bucket() |> ExAws.S3.get_object(key) |> ExAws.request() do
       {:ok, %{body: body}} -> {:ok, body}
       {:error, reason} -> {:error, reason}
@@ -32,12 +45,24 @@ defmodule Certfy.Storage do
   @doc """
   Deletes a template file by its object key.
   """
-  def delete_template(key) when is_binary(key) do
+  def delete_template(key) when is_binary(key), do: delete_object(key)
+
+  @doc """
+  Deletes an object by its key.
+  """
+  def delete_object(key) when is_binary(key) do
     case bucket() |> ExAws.S3.delete_object(key) |> ExAws.request() do
       {:ok, _response} -> :ok
       {:error, {:http_error, 404, _response}} -> :ok
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  @doc """
+  Builds the storage key for a generated certificate.
+  """
+  def certificate_key(user_id, participant_id, version) do
+    "certificates/#{user_id}/#{participant_id}/v#{version}.pdf"
   end
 
   @doc """

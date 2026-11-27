@@ -12,6 +12,7 @@ defmodule Certfy.Application do
       Certfy.Repo,
       {DNSCluster, query: Application.get_env(:certfy, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Certfy.PubSub},
+      {Oban, Application.fetch_env!(:certfy, Oban)},
       # Start a worker by calling: Certfy.Worker.start_link(arg)
       # {Certfy.Worker, arg},
       # Start to serve requests, typically the last entry

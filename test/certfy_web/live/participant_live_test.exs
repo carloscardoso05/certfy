@@ -3,6 +3,8 @@ defmodule CertfyWeb.ParticipantLiveTest do
 
   import Phoenix.LiveViewTest
   import Certfy.EventsFixtures
+  import Certfy.CertificatesFixtures
+  use Oban.Testing, repo: Certfy.Repo
 
   @create_attrs %{name: "some name", email: "some@email.com"}
   @update_attrs %{name: "some updated name", email: "some.updated@email.com"}
@@ -238,6 +240,94 @@ defmodule CertfyWeb.ParticipantLiveTest do
       html = render(show_live)
       assert html =~ "Participante atualizado com sucesso."
       assert html =~ "some updated name"
+    end
+  end
+
+  describe "Bulk certificates" do
+    setup %{scope: scope} do
+      event = event_with_template(scope)
+      batch = batch_fixture(scope, event)
+      first = participant_fixture(scope, batch, %{name: "Ana", email: "ana@example.com"})
+      second = participant_fixture(scope, batch, %{name: "Bruno", email: "bruno@example.com"})
+
+      %{event: event, batch: batch, first: first, second: second}
+    end
+
+    test "selects participants not generated and enqueues generation", %{
+      conn: conn,
+      scope: scope,
+      batch: batch,
+      first: first
+    } do
+      {:ok, view, html} = live(conn, ~p"/participants?batch_id=#{batch.id}")
+
+      assert html =~ "Não gerado"
+
+      view |> element("button[phx-click=select_not_generated]") |> render_click()
+
+      assert has_element?(view, "#bulk-actions")
+      assert render(view) =~ "2 selecionado(s)"
+
+      view |> element("button[phx-click=bulk_generate]") |> render_click()
+
+      html = render(view)
+      assert html =~ "2 certificado(s) enfileirado(s)."
+      assert html =~ "Gerando"
+
+      assert Certfy.Certificates.get_certificate_for_participant(scope, first.id).status ==
+               :pending
+
+      assert length(all_enqueued(worker: Certfy.Workers.GenerateCertificate)) == 2
+    end
+
+    test "sends ready certificates not sent yet", %{
+      conn: conn,
+      scope: scope,
+      batch: batch,
+      first: first,
+      second: second
+    } do
+      certificate_fixture(scope, first, %{status: :ready})
+      certificate_fixture(scope, second, %{status: :ready, emailed_at: DateTime.utc_now()})
+
+      {:ok, view, _html} = live(conn, ~p"/participants?batch_id=#{batch.id}")
+
+      view |> element("button[phx-click=select_not_sent]") |> render_click()
+      assert render(view) =~ "1 selecionado(s)"
+
+      view |> element("button[phx-click=bulk_send]") |> render_click()
+
+      assert render(view) =~ "1 e-mail(s) enfileirado(s)."
+      assert length(all_enqueued(worker: Certfy.Workers.SendCertificateEmail)) == 1
+    end
+
+    test "toggles a participant checkbox", %{
+      conn: conn,
+      batch: batch,
+      first: first
+    } do
+      {:ok, view, _html} = live(conn, ~p"/participants?batch_id=#{batch.id}")
+
+      view
+      |> element("#participants-#{first.id} input[type=checkbox]")
+      |> render_click()
+
+      assert render(view) =~ "1 selecionado(s)"
+    end
+
+    test "filters by certificate state", %{
+      conn: conn,
+      scope: scope,
+      batch: batch,
+      first: first,
+      second: second
+    } do
+      certificate_fixture(scope, first, %{status: :ready})
+
+      {:ok, view, html} = live(conn, ~p"/participants?batch_id=#{batch.id}&certificate=none")
+
+      assert html =~ second.name
+      refute has_element?(view, "#participants-#{first.id}")
     end
   end
 end

@@ -5,10 +5,7 @@ defmodule Certfy.Events do
 
   import Ecto.Query, warn: false
 
-  require Logger
-
   alias Certfy.Repo
-  alias Certfy.Storage
 
   alias Certfy.Events.{Batch, Event, Participant}
   alias Certfy.Accounts.Scope
@@ -127,10 +124,10 @@ defmodule Certfy.Events do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_event(%Scope{} = scope, attrs, opts \\ []) do
+  def create_event(%Scope{} = scope, attrs) do
     with {:ok, event = %Event{}} <-
            %Event{}
-           |> Event.changeset(attrs, scope, opts)
+           |> Event.changeset(attrs, scope)
            |> Repo.insert() do
       broadcast_event(scope, {:created, event})
       {:ok, event}
@@ -149,55 +146,30 @@ defmodule Certfy.Events do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_event(%Scope{} = scope, %Event{} = event, attrs, opts \\ []) do
+  def update_event(%Scope{} = scope, %Event{} = event, attrs) do
     true = event.user_id == scope.user.id
-    old_template_path = event.template_path
 
     with {:ok, event = %Event{}} <-
            event
-           |> Event.changeset(attrs, scope, opts)
+           |> Event.changeset(attrs, scope)
            |> Repo.update() do
-      maybe_delete_replaced_template(old_template_path, event.template_path)
       broadcast_event(scope, {:updated, event})
       {:ok, event}
     end
   end
 
   @doc """
-  Removes the template from an event and deletes the stored object.
+  Updates the template path and its analysis report.
   """
-  def remove_event_template(%Scope{} = scope, %Event{} = event) do
+  def update_event_template(%Scope{} = scope, %Event{} = event, attrs) do
     true = event.user_id == scope.user.id
 
-    with :ok <- delete_template_object(event.template_path),
-         {:ok, event = %Event{}} <-
+    with {:ok, event = %Event{}} <-
            event
-           |> Ecto.Changeset.change(template_path: nil)
+           |> Event.template_changeset(attrs)
            |> Repo.update() do
       broadcast_event(scope, {:updated, event})
       {:ok, event}
-    end
-  end
-
-  defp maybe_delete_replaced_template(nil, _new_template_path), do: :ok
-  defp maybe_delete_replaced_template(path, path), do: :ok
-
-  defp maybe_delete_replaced_template(old_template_path, _new_template_path) do
-    delete_template_object(old_template_path)
-    :ok
-  end
-
-  defp delete_template_object(nil), do: :ok
-
-  defp delete_template_object(template_path) do
-    case Storage.delete_template(template_path) do
-      :ok ->
-        :ok
-
-      {:error, reason} ->
-        Logger.warning("Could not delete template #{template_path}: #{inspect(reason)}")
-
-        {:error, reason}
     end
   end
 
@@ -529,6 +501,7 @@ defmodule Certfy.Events do
       from(p in Participant,
         join: b in assoc(p, :batch),
         join: e in assoc(b, :event),
+        left_join: c in assoc(p, :certificate),
         where: p.user_id == ^scope.user.id
       )
       |> filter_global_participant_query(opts)
@@ -541,7 +514,7 @@ defmodule Certfy.Events do
       |> limit(^per_page)
       |> offset(^((page - 1) * per_page))
       |> Repo.all()
-      |> Repo.preload(batch: :event)
+      |> Repo.preload([:certificate, batch: :event])
 
     page_result(items, total, page, per_page)
   end
@@ -562,6 +535,18 @@ defmodule Certfy.Events do
   """
   def get_participant!(%Scope{} = scope, id) do
     Repo.get_by!(Participant, id: id, user_id: scope.user.id)
+  end
+
+  @doc """
+  Lists all participants of an event.
+  """
+  def list_participants_for_event(%Scope{} = scope, %Event{} = event) do
+    from(p in Participant,
+      join: b in assoc(p, :batch),
+      where: p.user_id == ^scope.user.id and b.event_id == ^event.id,
+      order_by: [asc: p.name]
+    )
+    |> Repo.all()
   end
 
   @doc """
@@ -740,12 +725,33 @@ defmodule Certfy.Events do
     query =
       case normalize_term(opts["event_id"]) do
         nil -> query
-        event_id -> where(query, [p, b, e], e.id == ^event_id)
+        event_id -> where(query, [p, b, e, _c], e.id == ^event_id)
       end
 
-    case normalize_term(opts["batch_id"]) do
-      nil -> query
-      batch_id -> where(query, [p], p.batch_id == ^batch_id)
+    query =
+      case normalize_term(opts["batch_id"]) do
+        nil -> query
+        batch_id -> where(query, [p], p.batch_id == ^batch_id)
+      end
+
+    case opts["certificate"] do
+      "none" ->
+        where(query, [_p, _b, _e, c], is_nil(c.id))
+
+      "ready" ->
+        where(query, [_p, _b, _e, c], c.status == :ready and is_nil(c.emailed_at))
+
+      "sent" ->
+        where(query, [_p, _b, _e, c], not is_nil(c.emailed_at))
+
+      "error" ->
+        where(query, [_p, _b, _e, c], c.status == :failed or c.email_status == :failed)
+
+      "no_email" ->
+        where(query, [p], is_nil(p.email) or p.email == "")
+
+      _ ->
+        query
     end
   end
 

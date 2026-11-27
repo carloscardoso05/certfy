@@ -39,7 +39,7 @@ defmodule CertfyWeb.EventLive.Show do
               <dt class="text-sm text-base-content/60">Template</dt>
 
               <dd class="mt-1 text-base font-medium">
-                {if @event.template_path, do: "Sim", else: "Não"}
+                {template_status(@event)}
               </dd>
             </div>
 
@@ -59,33 +59,22 @@ defmodule CertfyWeb.EventLive.Show do
         >
           <p class="text-base text-base-content/70">
             {if @event.template_path,
-              do: "Há um template anexado a este evento.",
-              else: "Nenhum template anexado."}
+              do:
+                "Template enviado. Gerencie o arquivo, as tags e as pré-visualizações na página do template.",
+              else: "Nenhum template enviado ainda."}
           </p>
 
           <div class="mt-4 flex flex-wrap gap-2">
+            <.button navigate={~p"/events/#{@event}/template"} variant="soft">
+              <.icon name="hero-rectangle-group" /> Gerenciar template
+            </.button>
+
             <.button
               :if={@event.template_path}
-              href={~p"/events/#{@event}/template"}
-              download
+              href={~p"/events/#{@event}/template/download"}
               variant="soft"
             >
-              <.icon name="hero-arrow-down-tray" /> Baixar
-            </.button>
-
-            <.button
-              :if={@event.template_path}
-              phx-click="remove_template"
-              data-confirm="Remover o template deste evento?"
-              variant="danger"
-            >
-              <.icon name="hero-trash" /> Remover
-            </.button>
-
-            <.button navigate={~p"/events/#{@event}/edit?return_to=show"} variant="soft">
-              <.icon name="hero-arrow-up-tray" /> {if @event.template_path,
-                do: "Substituir",
-                else: "Enviar"}
+              <.icon name="hero-arrow-down-tray" /> Baixar .pptx
             </.button>
           </div>
         </.section>
@@ -123,20 +112,6 @@ defmodule CertfyWeb.EventLive.Show do
   end
 
   @impl true
-  def handle_event("remove_template", _params, socket) do
-    case Events.remove_event_template(socket.assigns.current_scope, socket.assigns.event) do
-      {:ok, event} ->
-        {:noreply,
-         socket
-         |> assign(:event, event)
-         |> put_flash(:info, "Template removido.")}
-
-      {:error, _reason} ->
-        {:noreply, put_flash(socket, :error, "Não foi possível remover o template.")}
-    end
-  end
-
-  @impl true
   def handle_info(
         {:updated, %Certfy.Events.Event{id: id} = event},
         %{assigns: %{event: %{id: id}}} = socket
@@ -161,4 +136,12 @@ defmodule CertfyWeb.EventLive.Show do
 
   defp batch_count_label(1), do: "1 lote"
   defp batch_count_label(total), do: "#{total} lotes"
+
+  defp template_status(%{template_path: nil}), do: "Nenhum"
+
+  defp template_status(event) do
+    malformed = get_in(event.template_report || %{}, ["malformed"]) || []
+
+    if malformed == [], do: "Enviado", else: "Enviado (com tags malformadas)"
+  end
 end

@@ -11,6 +11,7 @@ defmodule Certfy.Events.Participant do
     field :user_id, :id
 
     belongs_to :batch, Batch
+    has_one :certificate, Certfy.Certificates.Certificate
 
     timestamps(type: :utc_datetime)
   end
@@ -21,6 +22,7 @@ defmodule Certfy.Events.Participant do
     |> cast(attrs, [:name, :email, :extra_data])
     |> update_change(:email, &normalize_email/1)
     |> validate_required([:name])
+    |> validate_length(:name, max: 160)
     |> validate_email_format(:email)
     |> foreign_key_constraint(:batch_id)
     |> foreign_key_constraint(:user_id)

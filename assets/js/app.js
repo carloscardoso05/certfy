@@ -335,10 +335,27 @@ const SearchableSelect = {
   },
 }
 
+const CopyTag = {
+  mounted() {
+    this.onClick = async () => {
+      try {
+        await navigator.clipboard.writeText(this.el.dataset.copy || "")
+        this.el.classList.add("text-success")
+        setTimeout(() => this.el.classList.remove("text-success"), 1200)
+      } catch (_error) {
+        // Clipboard may be unavailable; the tag remains visible in the table.
+      }
+    }
+    this.el.addEventListener("click", this.onClick)
+  },
+  destroyed() {
+    this.el.removeEventListener("click", this.onClick)
+  },
+}
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ConfirmDialog, Dropdown, UnsavedChanges, Drawer, SearchableSelect},
+  hooks: {...colocatedHooks, ConfirmDialog, Dropdown, UnsavedChanges, Drawer, SearchableSelect, CopyTag},
 })
 
 // Show progress bar on live navigation and form submits

@@ -18,6 +18,11 @@ services:
       - "9001:9001"
     volumes:
       - rustfs_data:/data
+  gotenberg:
+    image: gotenberg/gotenberg:9-libreoffice
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
 
 volumes:
   postgres_data:

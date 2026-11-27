@@ -35,6 +35,11 @@ config :ex_aws, :s3,
 
 config :certfy, :storage, bucket: System.get_env("RUSTFS_BUCKET", "certfy-templates")
 
+config :certfy, :certificates,
+  pdf_url: System.get_env("GOTENBERG_URL", "http://localhost:3000"),
+  from_email: System.get_env("CERTIFICATE_FROM_EMAIL", "no-reply@certfy.local"),
+  from_name: System.get_env("CERTIFICATE_FROM_NAME", "Certfy")
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :certfy, CertfyWeb.Endpoint,
@@ -128,6 +133,29 @@ if config_env() == :prod do
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
+
+  # ## Configuring the mailer
+  #
+  # SMTP is configured through environment variables. When SMTP_HOST is not
+  # set, the adapter from config/config.exs stays in place (local in dev).
+  if smtp_host = System.get_env("SMTP_HOST") do
+    smtp_tls =
+      case System.get_env("SMTP_TLS", "if_available") do
+        "always" -> :always
+        "never" -> :never
+        _ -> :if_available
+      end
+
+    config :certfy, Certfy.Mailer,
+      adapter: Swoosh.Adapters.SMTP,
+      relay: smtp_host,
+      port: String.to_integer(System.get_env("SMTP_PORT", "587")),
+      username: System.get_env("SMTP_USERNAME"),
+      password: System.get_env("SMTP_PASSWORD"),
+      tls: smtp_tls,
+      auth: :if_available,
+      retries: 1
+  end
 
   # ## Configuring the mailer
   #

@@ -8,6 +8,7 @@ defmodule Certfy.EventsTest do
 
     import Certfy.AccountsFixtures, only: [user_scope_fixture: 0]
     import Certfy.EventsFixtures
+    import Certfy.CertificatesFixtures
 
     @invalid_attrs %{name: nil, extra_data: nil}
 
@@ -24,9 +25,13 @@ defmodule Certfy.EventsTest do
       scope = user_scope_fixture()
 
       with_template =
-        event_fixture(scope, %{name: "Com template", template_path: "templates/a.pptx"})
+        event_fixture(scope, %{
+          name: "Com template",
+          template_path: template_path(),
+          template_report: pptx_report()
+        })
 
-      without_template = event_fixture(scope, %{name: "Sem template", template_path: nil})
+      without_template = event_fixture(scope, %{name: "Sem template"})
 
       assert %{total: 2, items: items} = Events.list_events_page(scope, %{})
       assert length(items) == 2
@@ -59,15 +64,13 @@ defmodule Certfy.EventsTest do
       assert_raise Ecto.NoResultsError, fn -> Events.get_event!(other_scope, event.id) end
     end
 
-    test "create_event/3 with valid data creates a event" do
-      valid_attrs = %{name: "some name", extra_data: %{}}
+    test "create_event/2 with valid data creates a event" do
       scope = user_scope_fixture()
+      valid_attrs = %{name: "some name", extra_data: %{}}
 
-      assert {:ok, %Event{} = event} =
-               Events.create_event(scope, valid_attrs, template_path: "some template_path")
+      assert {:ok, %Event{} = event} = Events.create_event(scope, valid_attrs)
 
       assert event.name == "some name"
-      assert event.template_path == "some template_path"
       assert event.extra_data == %{}
       assert event.user_id == scope.user.id
     end
@@ -77,46 +80,29 @@ defmodule Certfy.EventsTest do
       assert {:error, %Ecto.Changeset{}} = Events.create_event(scope, @invalid_attrs)
     end
 
-    test "update_event/4 with valid data updates the event" do
+    test "update_event/3 with valid data updates the event" do
       scope = user_scope_fixture()
       event = event_fixture(scope)
       update_attrs = %{name: "some updated name", extra_data: %{}}
 
-      assert {:ok, %Event{} = event} =
-               Events.update_event(scope, event, update_attrs,
-                 template_path: "some updated template_path"
-               )
+      assert {:ok, %Event{} = event} = Events.update_event(scope, event, update_attrs)
 
       assert event.name == "some updated name"
-      assert event.template_path == "some updated template_path"
       assert event.extra_data == %{}
     end
 
-    test "update_event/4 deletes the replaced template object" do
+    test "update_event_template/3 stores the path and report" do
       scope = user_scope_fixture()
-      event = event_fixture(scope, %{template_path: "templates/old.pptx"})
-      Process.put(:storage_stub_notify, self())
+      event = event_fixture(scope)
 
-      assert {:ok, %Event{} = updated} =
-               Events.update_event(scope, event, %{name: "new name"},
-                 template_path: "templates/new.pptx"
-               )
+      assert {:ok, %Event{} = event} =
+               Events.update_event_template(scope, event, %{
+                 template_path: template_path(),
+                 template_report: pptx_report()
+               })
 
-      assert updated.template_path == "templates/new.pptx"
-      assert_receive {:storage_request, :delete, url}
-      assert url =~ "old.pptx"
-    end
-
-    test "remove_event_template/2 clears and deletes the template" do
-      scope = user_scope_fixture()
-      event = event_fixture(scope, %{template_path: "templates/old.pptx"})
-      Process.put(:storage_stub_notify, self())
-
-      assert {:ok, %Event{} = removed} = Events.remove_event_template(scope, event)
-
-      assert is_nil(removed.template_path)
-      assert_receive {:storage_request, :delete, url}
-      assert url =~ "old.pptx"
+      assert event.template_path == template_path()
+      assert event.template_report["slides"] == 1
     end
 
     test "update_event/3 with invalid scope raises" do

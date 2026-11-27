@@ -1,0 +1,93 @@
+<Layouts.app flash={%{}}>
+  <div class="mx-auto w-full max-w-xl">
+    <div class="mb-6 flex items-center justify-center gap-2">
+      <svg viewBox="0 0 32 32" class="h-9 w-9 text-primary" aria-hidden="true">
+        <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.25" />
+        <circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="1" />
+        <path
+          d="M20.4 12.6a5.2 5.2 0 0 0-4-1.7c-2.9 0-4.9 2.2-4.9 5.1s2 5.1 4.9 5.1c1.6 0 2.9-.6 3.9-1.7l-1.9-1.5c-.5.5-1.1.8-1.9.8-1.3 0-2.2-.9-2.2-2.7s.9-2.7 2.2-2.7c.8 0 1.4.3 1.9.8z"
+          fill="currentColor"
+        />
+      </svg>
+      <span class="text-xl font-semibold tracking-tight">Certfy</span>
+    </div>
+
+    <div class="card border border-base-300 bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h1 class="text-xl font-semibold">Validar certificado</h1>
+        <p class="text-base text-base-content/70">
+          Digite o código impresso no certificado para conferir a autenticidade.
+        </p>
+
+        <form action={~p"/validar"} method="get" class="mt-4 flex flex-col gap-3 sm:flex-row">
+          <input
+            type="text"
+            name="codigo"
+            value={@code}
+            maxlength="10"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="Código de 10 caracteres"
+            aria-label="Código do certificado"
+            class="input input-bordered w-full font-mono text-lg uppercase tracking-widest"
+          />
+          <button type="submit" class="btn btn-primary">Validar</button>
+        </form>
+
+        <%= cond do %>
+          <% is_nil(@certificate) and @code != "" -> %>
+            <div class="alert alert-error mt-6">
+              <.icon name="hero-x-circle" class="size-5 shrink-0" />
+              <span>Nenhum certificado encontrado para este código.</span>
+            </div>
+          <% is_nil(@certificate) -> %>
+            <p class="mt-6 text-sm text-base-content/60">
+              O código fica impresso ao lado do QR code no certificado.
+            </p>
+          <% @certificate.status != :ready -> %>
+            <div class="alert alert-warning mt-6">
+              <.icon name="hero-clock" class="size-5 shrink-0" />
+              <span>Este certificado ainda não está disponível para validação.</span>
+            </div>
+          <% true -> %>
+            <div class="mt-6 rounded-box border border-success/30 bg-success/10 p-5">
+              <div class="flex items-center gap-2 text-success">
+                <.icon name="hero-check-badge" class="size-6" />
+                <p class="text-lg font-semibold">Certificado válido</p>
+              </div>
+
+              <dl class="mt-4 grid gap-3 text-base">
+                <div>
+                  <dt class="text-sm text-base-content/60">Participante</dt>
+                  <dd class="font-medium">
+                    {@certificate.snapshot["participant.name"] || @certificate.participant.name}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-base-content/60">Evento</dt>
+                  <dd class="font-medium">
+                    {@certificate.snapshot["event.name"] || @certificate.event.name}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-base-content/60">Lote</dt>
+                  <dd class="font-medium">
+                    {@certificate.snapshot["batch.name"] || @certificate.batch.name}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-base-content/60">Código</dt>
+                  <dd class="font-mono text-lg tracking-widest">{@certificate.code}</dd>
+                </div>
+              </dl>
+            </div>
+        <% end %>
+      </div>
+    </div>
+
+    <p class="mt-6 text-center text-sm text-base-content/60">
+      A validação consulta os certificados emitidos pelo Certfy.
+    </p>
+  </div>
+</Layouts.app>

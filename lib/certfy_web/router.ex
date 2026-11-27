@@ -21,6 +21,9 @@ defmodule CertfyWeb.Router do
     pipe_through :browser
 
     get "/", HomeController, :index
+
+    get "/validar", CertificateController, :validate
+    get "/validar/:code", CertificateController, :validate
   end
 
   # Other scopes may use custom stacks.
@@ -63,10 +66,13 @@ defmodule CertfyWeb.Router do
     end
 
     live_session :app, on_mount: @auth_hooks do
-      get "/events/:id/template", EventController, :download_template
+      get "/certificates/:id/download", CertificateController, :download
 
       live "/events", EventLive.Index, :index
       live "/events/new", EventLive.Form, :new
+      live "/events/:id/template", EventLive.Template, :show
+      get "/events/:id/template/download", TemplateController, :download
+      get "/events/:id/template/preview", TemplateController, :preview
       live "/events/:id", EventLive.Show, :show
       live "/events/:id/edit", EventLive.Form, :edit
 

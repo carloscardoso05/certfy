@@ -52,6 +52,19 @@ config :phoenix_live_view,
 # at the `config/runtime.exs`.
 config :certfy, Certfy.Mailer, adapter: Swoosh.Adapters.Local
 
+# Background jobs for certificate generation and e-mail delivery
+config :certfy, Oban,
+  repo: Certfy.Repo,
+  plugins: [Oban.Plugins.Pruner],
+  queues: [default: 10, certificates: 2, emails: 5]
+
+# Certificate generation
+config :certfy, :certificates,
+  pdf_url: "http://localhost:3000",
+  max_attachment_bytes: 15_000_000,
+  from_email: "no-reply@certfy.local",
+  from_name: "Certfy"
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",

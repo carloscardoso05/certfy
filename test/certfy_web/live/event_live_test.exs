@@ -3,6 +3,7 @@ defmodule CertfyWeb.EventLiveTest do
 
   import Phoenix.LiveViewTest
   import Certfy.EventsFixtures
+  import Certfy.CertificatesFixtures
 
   @create_attrs %{name: "some name"}
   @update_attrs %{name: "some updated name"}
@@ -29,10 +30,9 @@ defmodule CertfyWeb.EventLiveTest do
 
     test "filters events by query and template", %{conn: conn, scope: scope} do
       with_template =
-        event_fixture(scope, %{name: "Encontro com template", template_path: "templates/a.pptx"})
+        event_with_template(scope, %{name: "Encontro com template"})
 
-      without_template =
-        event_fixture(scope, %{name: "Encontro sem template", template_path: nil})
+      without_template = event_fixture(scope, %{name: "Encontro sem template"})
 
       {:ok, _lv, html} = live(conn, ~p"/events?template=no")
       assert html =~ without_template.name
@@ -101,44 +101,6 @@ defmodule CertfyWeb.EventLiveTest do
         |> Enum.find(&(&1.name == "event with extra data"))
 
       assert event.extra_data == %{"sala" => "A"}
-    end
-
-    test "saves a template file", %{conn: conn, scope: scope} do
-      {:ok, index_live, _html} = live(conn, ~p"/events")
-
-      assert {:ok, form_live, _} =
-               index_live
-               |> element("a", "Novo evento")
-               |> render_click()
-               |> follow_redirect(conn, ~p"/events/new")
-
-      content = "template content"
-
-      upload =
-        file_input(form_live, "#event-form", :template, [
-          %{
-            last_modified: 1_594_171_879_000,
-            name: "template.pptx",
-            content: content,
-            size: byte_size(content),
-            type: "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-          }
-        ])
-
-      assert render_upload(upload, "template.pptx") =~ "100%"
-
-      assert {:ok, _index_live, _html} =
-               form_live
-               |> form("#event-form", event: %{name: "event with template"})
-               |> render_submit()
-               |> follow_redirect(conn, ~p"/events")
-
-      event =
-        scope
-        |> Certfy.Events.list_events()
-        |> Enum.find(&(&1.name == "event with template"))
-
-      assert event.template_path =~ ~r{\Atemplates/[A-Za-z0-9_-]+\.pptx\z}
     end
 
     test "updates event in listing", %{conn: conn, event: event} do
@@ -221,21 +183,13 @@ defmodule CertfyWeb.EventLiveTest do
       assert html =~ "Auditório"
     end
 
-    test "shows and removes the event template", %{conn: conn, event: event, scope: scope} do
-      {:ok, show_live, html} = live(conn, ~p"/events/#{event}")
+    test "shows the event template", %{conn: conn, scope: scope} do
+      event = event_with_template(scope)
 
-      assert html =~ "Baixar"
-      assert html =~ "Remover"
-      assert html =~ ~p"/events/#{event}/template"
+      {:ok, _show_live, html} = live(conn, ~p"/events/#{event}")
 
-      show_live
-      |> element("button", "Remover")
-      |> render_click()
-
-      html = render(show_live)
-      assert html =~ "Template removido."
-      refute html =~ "Baixar"
-      assert is_nil(Certfy.Events.get_event!(scope, event.id).template_path)
+      assert html =~ "Enviado"
+      assert html =~ "Gerenciar template"
     end
   end
 end

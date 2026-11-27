@@ -1,7 +1,7 @@
 defmodule Certfy.EventsFixtures do
   @moduledoc """
   This module defines test helpers for creating
-  entities via the `Certfy.Events` context.
+  entities via the Certfy.Events context.
   """
 
   alias Certfy.Events.Batch
@@ -16,7 +16,8 @@ defmodule Certfy.EventsFixtures do
   Generate a event.
   """
   def event_fixture(scope, attrs \\ %{}) do
-    {template_path, attrs} = Map.pop(attrs, :template_path, "some template_path")
+    {template_path, attrs} = Map.pop(attrs, :template_path)
+    {template_report, attrs} = Map.pop(attrs, :template_report)
 
     attrs =
       Enum.into(attrs, %{
@@ -24,8 +25,20 @@ defmodule Certfy.EventsFixtures do
         name: unique_event_name()
       })
 
-    {:ok, event} = Certfy.Events.create_event(scope, attrs, template_path: template_path)
-    event
+    {:ok, event} = Certfy.Events.create_event(scope, attrs)
+
+    if template_path || template_report do
+      {:ok, event} =
+        Certfy.Events.update_event_template(scope, event, %{
+          template_path: template_path,
+          template_report: template_report || %{},
+          template_checked_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+
+      event
+    else
+      event
+    end
   end
 
   @doc """
