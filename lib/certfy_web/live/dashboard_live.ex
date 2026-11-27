@@ -30,7 +30,7 @@ defmodule CertfyWeb.DashboardLive do
           <p class="text-sm font-medium text-primary">Primeiros passos</p>
           <h2 class="mt-1 font-display text-2xl font-semibold">Comece pelo seu primeiro evento</h2>
           <p class="mt-2 text-base-content/70">
-            O Certfy organiza a emissão em quatro etapas. Você pode voltar a esta página a qualquer momento.
+            O {Certfy.Branding.name()} organiza a emissão em quatro etapas. Você pode voltar a esta página a qualquer momento.
           </p>
 
           <ol class="mt-6 space-y-4">

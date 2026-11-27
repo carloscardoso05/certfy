@@ -17,8 +17,8 @@ defmodule Certfy.Certificates.Notifier do
     participant = certificate.participant
     event = certificate.event
     config = Application.get_env(:certfy, :certificates, [])
-    from_email = Keyword.get(config, :from_email, "no-reply@certfy.local")
-    from_name = Keyword.get(config, :from_name, "Certfy")
+    from_email = Keyword.get(config, :from_email, Certfy.Branding.from_email())
+    from_name = Keyword.get(config, :from_name, Certfy.Branding.name())
 
     attachment =
       Swoosh.Attachment.new({:data, pdf},

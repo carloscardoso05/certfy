@@ -27,6 +27,14 @@ config :certfy,
 # Configure Gettext (mensagens de erro em pt-BR)
 config :certfy, CertfyWeb.Gettext, default_locale: "pt_BR"
 
+# Product identity. Deployments can override these values at runtime with
+# BRAND_NAME, BRAND_THEME and BRAND_FROM_EMAIL (see config/runtime.exs).
+config :certfy, :branding,
+  name: "Certifique",
+  theme: "certifique",
+  mark: "fadesp",
+  from_email: "no-reply@certifique.local"
+
 # Configure the endpoint
 config :certfy, CertfyWeb.Endpoint,
   url: [host: "localhost"],
@@ -62,8 +70,8 @@ config :certfy, Oban,
 config :certfy, :certificates,
   pdf_url: "http://localhost:3000",
   max_attachment_bytes: 15_000_000,
-  from_email: "no-reply@certfy.local",
-  from_name: "Certfy"
+  from_email: "no-reply@certifique.local",
+  from_name: "Certifique"
 
 # Configure esbuild (the version is required)
 config :esbuild,

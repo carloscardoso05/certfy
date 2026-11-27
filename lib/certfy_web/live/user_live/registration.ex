@@ -12,7 +12,7 @@ defmodule CertfyWeb.UserLive.Registration do
           <div class="card-body">
             <.header>
               Crie sua conta
-              <:subtitle>Você foi convidado a acessar o Certfy.</:subtitle>
+              <:subtitle>Você foi convidado a acessar o {Certfy.Branding.name()}.</:subtitle>
             </.header>
 
             <.form

@@ -1,6 +1,7 @@
 defmodule Certfy.Accounts.UserNotifier do
   import Swoosh.Email
 
+  alias Certfy.Branding
   alias Certfy.Mailer
   alias Certfy.Accounts.User
 
@@ -9,7 +10,7 @@ defmodule Certfy.Accounts.UserNotifier do
     email =
       new()
       |> to(recipient)
-      |> from({"Certfy", "contact@example.com"})
+      |> from({Branding.name(), Branding.from_email()})
       |> subject(subject)
       |> text_body(body)
 
@@ -86,13 +87,13 @@ defmodule Certfy.Accounts.UserNotifier do
   Delivers an invitation so the person can create an account.
   """
   def deliver_invitation_instructions(invitation, url, invited_by) do
-    deliver(invitation.email, "Convite para acessar o Certfy", """
+    deliver(invitation.email, "Convite para acessar o #{Branding.name()}", """
 
     ==============================
 
     Olá,
 
-    #{invited_by.name} te convidou para acessar o Certfy.
+    #{invited_by.name} te convidou para acessar o #{Branding.name()}.
 
     Crie sua conta acessando o link abaixo (válido por 7 dias):
 

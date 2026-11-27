@@ -1,4 +1,4 @@
-# Certfy
+# Certifique
 
 To start your Phoenix server:
 
@@ -7,13 +7,44 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
+## Identidade visual
+
+The interface and account e-mails read their identity from `Certfy.Branding`.
+Each deployment can override the defaults at runtime:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `BRAND_NAME` | `Certifique` | Product name in titles, navigation, copy and e-mails |
+| `BRAND_THEME` | `certifique` | Palette key applied as `data-brand` (`certifique` or `certfy`) |
+| `BRAND_MARK` | `fadesp` | Mark asset: `fadesp` (institutional seal, circle only) or `certfy` (original C) |
+| `BRAND_FROM_EMAIL` | `no-reply@certifique.local` | Sender address for account e-mails |
+
+The `certifique` palette is inspired by FADESP (orange `#DD6B3B`, navy
+`#00264C`, blue `#0C4DA2`). The primary orange is darkened to `#B84E22` for
+AA-contrast text and buttons, while the mark keeps the original `#DD6B3B`.
+Set `BRAND_THEME=certfy` to render the original green identity. Certificate
+e-mails keep using `CERTIFICATE_FROM_NAME` and `CERTIFICATE_FROM_EMAIL`.
+
+The `fadesp` mark uses the institutional seal (circle only), shared by the
+sidebar, login, public validation page and favicon. `BRAND_MARK=certfy` uses
+the original green C mark instead.
+
 ## Access model
 
 - There is no public sign-up. Admins invite people from the **Usuários** page (`/users`).
 - Login is passwordless: enter your email at `/users/log-in` and open the link sent to your inbox.
-- The first admin is created by `mix run priv/repo/seeds.exs` (email from `CERTFY_ADMIN_EMAIL`, default `admin@certfy.local`).
+- The first admin is created by `mix run priv/repo/seeds.exs` (email from `CERTIFIQUE_ADMIN_EMAIL`; `CERTFY_ADMIN_EMAIL` is still accepted, default `admin@certifique.local`).
 - In development, sent emails are available at `/dev/mailbox`.
 - Admins can deactivate/reactivate users and change roles between `USER` and `ADMIN`.
+
+## Active Directory (planned)
+
+Authentication stays on magic links and admin invitations for now. The
+migration to LDAP/Active Directory is documented but not implemented; see
+[`docs/ldap-migration.md`](docs/ldap-migration.md) for the architecture, the
+configuration matrix, the database migration and the rollout checklist. That
+plan is pinned to commit `9ea75d0d66fa86e07d3c0d527b35f59a35ce3f62`.
+
 
 ## Object storage and certificates
 
