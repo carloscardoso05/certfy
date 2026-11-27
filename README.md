@@ -98,8 +98,10 @@ Ready to run in production? Please [check our deployment guides](https://phoenix
 ## Production deploy (Dokploy)
 
 The production stack lives in `docker-compose.prod.yml` and **pulls** the image
-`CERTFY_IMAGE`; it never builds on the server. The image comes from `Dockerfile`
-(Elixir release on Debian slim, running as a non-root user).
+`CERTFY_IMAGE` (default `docker.io/carloscardoso05/certfy:latest`); it never
+builds on the server. The image comes from `Dockerfile` (Elixir release on
+Debian slim, running as a non-root user). Copy `.env.example` to `.env` for the
+local variables or fill the same names in the Dokploy **Environment** tab.
 
 Services:
 
@@ -115,7 +117,7 @@ Services:
 
 | Variable | Notes |
 |---|---|
-| `CERTFY_IMAGE` | Image reference to pull, e.g. `docker.io/carloscardoso05/certfy:0.1.0-abc1234` |
+| `CERTFY_IMAGE` | Optional image reference; defaults to `docker.io/carloscardoso05/certfy:latest` |
 | `APP_HOST` | Public hostname used by Phoenix (`PHX_HOST`) |
 | `SECRET_KEY_BASE` | Generate with `mix phx.gen.secret` |
 | `POSTGRES_PASSWORD` | Password for the internal database |
@@ -155,16 +157,16 @@ identity; never build one image per branch.
 
 1. Create a **Compose** application pointing to this repository and to
    `docker-compose.prod.yml`.
-2. Fill the environment variables above in the Dokploy **Environment** tab,
-   including `CERTFY_IMAGE` with the published tag.
+2. Fill the environment variables above in the Dokploy **Environment** tab
+   (set `CERTFY_IMAGE` only to pin a specific tag instead of `latest`).
 3. Add a domain to the `app` service (container port `4000`). Dokploy/Traefik
-   handles TLS; no labels or `ports:` are needed in the compose file.
+   handles TLS and the network; no labels, `ports:` or `networks:` are needed in
+   the compose file.
 4. Deploy. The image is pulled, the `migrate` service runs first and the app
    starts afterwards.
 
-The compose file attaches `app` to the external `dokploy-network`; keep that
-network name unless your Dokploy installation uses another one. There is no
-fixed project name, so two deployments can share the same server.
+Dokploy manages the network and project naming, so two deployments can share
+the same server without changes to this file.
 
 To build and run the same compose locally:
 

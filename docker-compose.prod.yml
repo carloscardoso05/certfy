@@ -1,30 +1,16 @@
 # Production stack for Dokploy (pull-only).
 #
-# The image is built outside the server and pulled from a registry; Dokploy
+# The image is built outside the server and pulled from the registry; Dokploy
 # never builds it. For a local build, combine with docker-compose.build.yml:
 #
 #   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml up --build
 #
-# Dokploy injects the Traefik labels/network when you add a domain to the
-# `app` service (port 4000). The only requirement is that this file keeps the
-# `dokploy-network` network attached to `app`.
-#
-# Required environment variables (set in the Dokploy "Environment" tab):
-#   CERTFY_IMAGE          image reference, e.g. docker.io/carloscardoso05/certfy:0.1.0-abc1234
-#   APP_HOST              public hostname, e.g. certificados.suaempresa.com
-#   SECRET_KEY_BASE       generated with: mix phx.gen.secret
-#   POSTGRES_PASSWORD     password of the internal database
-#   RUSTFS_ACCESS_KEY     object storage access key
-#   RUSTFS_SECRET_KEY     object storage secret key
-#
-# Optional:
-#   POSTGRES_USER (certfy), POSTGRES_DB (certfy), POOL_SIZE (10),
-#   RUSTFS_BUCKET (certfy-templates), CERTIFICATE_FROM_EMAIL,
-#   CERTIFICATE_FROM_NAME, CERTFY_ADMIN_EMAIL, SMTP_* (see config/runtime.exs),
-#   BRAND_NAME, BRAND_THEME, BRAND_MARK, BRAND_FROM_EMAIL.
+# Dokploy manages the Traefik labels and the network it needs; this file only
+# exposes the container port. Copy .env.example to .env (or fill the Dokploy
+# "Environment" tab) before deploying.
 
 x-app: &app
-  image: ${CERTFY_IMAGE:?CERTFY_IMAGE is required}
+  image: ${CERTFY_IMAGE:-docker.io/carloscardoso05/certfy:latest}
   restart: unless-stopped
   stop_grace_period: 30s
   pull_policy: always
@@ -49,6 +35,10 @@ services:
       GOTENBERG_URL: http://gotenberg:3000
       CERTIFICATE_FROM_EMAIL: ${CERTIFICATE_FROM_EMAIL:-no-reply@certfy.local}
       CERTIFICATE_FROM_NAME: ${CERTIFICATE_FROM_NAME:-Certfy}
+      BRAND_NAME: ${BRAND_NAME:-Certfy}
+      BRAND_THEME: ${BRAND_THEME:-certfy}
+      BRAND_MARK: ${BRAND_MARK:-certfy}
+      BRAND_FROM_EMAIL: ${BRAND_FROM_EMAIL:-no-reply@certfy.local}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
@@ -69,9 +59,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
-    networks:
-      - internal
-      - dokploy-network
 
   # One-shot migration runner. Runs before `app` starts and exits.
   migrate:
@@ -86,8 +73,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - internal
 
   postgres:
     image: postgres:19-alpine
@@ -104,8 +89,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
-    networks:
-      - internal
 
   rustfs:
     image: rustfs/rustfs:latest
@@ -115,23 +98,13 @@ services:
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
     volumes:
       - rustfs_data:/data
-    networks:
-      - internal
 
   gotenberg:
     image: gotenberg/gotenberg:9-libreoffice
     restart: unless-stopped
     environment:
       LIBREOFFICE_AUTO_START: "true"
-    networks:
-      - internal
 
 volumes:
   postgres_data:
   rustfs_data:
-
-networks:
-  internal:
-  # Created by Dokploy. It is how Traefik reaches the app container.
-  dokploy-network:
-    external: true
