@@ -115,7 +115,7 @@ Services:
 
 | Variable | Notes |
 |---|---|
-| `CERTFY_IMAGE` | Image reference to pull, e.g. `ghcr.io/carloscardoso05/certfy:0.1.0-abc1234` |
+| `CERTFY_IMAGE` | Image reference to pull, e.g. `docker.io/carloscardoso05/certfy:0.1.0-abc1234` |
 | `APP_HOST` | Public hostname used by Phoenix (`PHX_HOST`) |
 | `SECRET_KEY_BASE` | Generate with `mix phx.gen.secret` |
 | `POSTGRES_PASSWORD` | Password for the internal database |
@@ -133,17 +133,23 @@ password (letters, digits and `-_.~`) or set `DATABASE_URL` explicitly.
 ### Building and publishing the image
 
 Build on a machine with the same architecture as the server (the current
-deployment targets `linux/amd64`) and push to the public registry:
+deployment targets `linux/amd64`) and push to a public registry. The current
+image is published on Docker Hub:
 
 ```bash
-docker login ghcr.io -u carloscardoso05          # PAT with write:packages
-docker build -t ghcr.io/carloscardoso05/certfy:0.1.0-<sha> .
-docker push ghcr.io/carloscardoso05/certfy:0.1.0-<sha>
+docker login docker.io -u carloscardoso05
+docker build -t docker.io/carloscardoso05/certfy:0.1.0-<sha> .
+docker push docker.io/carloscardoso05/certfy:0.1.0-<sha>
+docker tag docker.io/carloscardoso05/certfy:0.1.0-<sha> docker.io/carloscardoso05/certfy:latest
+docker push docker.io/carloscardoso05/certfy:latest
 ```
 
-Then make the package public once (GitHub → Packages → the `certfy` package →
-Package settings → Change visibility). Keep one image per release and use the
-branding variables to change the identity; never build one image per branch.
+Docker Hub repositories are public by default. GHCR (`ghcr.io/<owner>/certfy`)
+also works, but the package must be published with a token that has
+`write:packages` and its visibility changed to public once.
+
+Keep one image per release and use the branding variables to change the
+identity; never build one image per branch.
 
 ### Steps in Dokploy
 

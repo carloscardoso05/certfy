@@ -10,7 +10,7 @@
 # `dokploy-network` network attached to `app`.
 #
 # Required environment variables (set in the Dokploy "Environment" tab):
-#   CERTFY_IMAGE          image reference, e.g. ghcr.io/carloscardoso05/certfy:0.1.0-abc1234
+#   CERTFY_IMAGE          image reference, e.g. docker.io/carloscardoso05/certfy:0.1.0-abc1234
 #   APP_HOST              public hostname, e.g. certificados.suaempresa.com
 #   SECRET_KEY_BASE       generated with: mix phx.gen.secret
 #   POSTGRES_PASSWORD     password of the internal database
