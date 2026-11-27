@@ -75,7 +75,7 @@ defmodule CertfyWeb.EventLive.Template do
             <p class="font-medium">Monte o .pptx</p>
             <p class="mt-1 text-sm text-base-content/65">
               Escreva tags como
-              <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participant.name}}</code>
+              <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participante.nome}}</code>
               nos lugares que serão preenchidos.
             </p>
           </div>
@@ -212,20 +212,24 @@ defmodule CertfyWeb.EventLive.Template do
 
               <ul class="mt-4 space-y-2 text-sm">
                 <li>
-                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{event.name}}</code>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{evento.nome}}</code>
                   <span class="text-base-content/65">— nome do evento.</span>
                 </li>
                 <li>
-                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{batch.name}}</code>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{lote.nome}}</code>
                   <span class="text-base-content/65">— nome do lote.</span>
                 </li>
                 <li>
-                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participant.name}}</code>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participante.nome}}</code>
                   <span class="text-base-content/65">— nome do participante.</span>
                 </li>
                 <li>
-                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participant.email}}</code>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participante.email}}</code>
                   <span class="text-base-content/65">— e-mail do participante.</span>
+                </li>
+                <li>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{certificado.codigo}}</code>
+                  <span class="text-base-content/65">— código de validação do certificado.</span>
                 </li>
                 <li>
                   <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{qrcode}}</code>
@@ -521,14 +525,17 @@ defmodule CertfyWeb.EventLive.Template do
         Tags.build(selected, selected.batch, event, %{code: "EXEMPLO123"})
       else
         %{
-          "event.name" => event.name,
-          "batch.name" => "Lote de exemplo",
-          "participant.name" => "Maria da Silva",
-          "participant.email" => "maria@exemplo.com",
-          "certificate.code" => "EXEMPLO123",
-          "certificate.issued_at" => Calendar.strftime(Date.utc_today(), "%d/%m/%Y")
+          "evento.nome" => event.name,
+          "lote.nome" => "Lote de exemplo",
+          "participante.nome" => "Maria da Silva",
+          "participante.email" => "maria@exemplo.com",
+          "certificado.codigo" => "EXEMPLO123",
+          "certificado.data_emissao" => Calendar.strftime(Date.utc_today(), "%d/%m/%Y")
         }
       end
+
+    catalog_rows = catalog_rows(scope, event, participants, selected, values)
+    catalog_tags = MapSet.new(catalog_rows, &catalog_key(&1.tag))
 
     socket
     |> assign(:participants, participants)
@@ -538,13 +545,8 @@ defmodule CertfyWeb.EventLive.Template do
     |> assign(:values, values)
     |> assign(:batch_count, Events.count_batches(scope, event))
     |> assign(:participant_count, length(participants))
-    |> assign(
-      :catalog_rows,
-      catalog_rows(scope, event, participants, selected, values)
-    )
-    |> then(fn socket ->
-      assign(socket, :catalog_tags, MapSet.new(socket.assigns.catalog_rows, & &1.tag))
-    end)
+    |> assign(:catalog_rows, catalog_rows)
+    |> assign(:catalog_tags, catalog_tags)
   end
 
   defp catalog_rows(scope, event, participants, selected, values) do
@@ -554,45 +556,45 @@ defmodule CertfyWeb.EventLive.Template do
 
     base =
       [
-        row("event-name", "Evento", "Nome", "{{event.name}}", values["event.name"], "sempre"),
+        row("evento-nome", "Evento", "Nome", "{{evento.nome}}", values["evento.nome"], "sempre"),
         row(
-          "batch-name",
+          "lote-nome",
           "Lote",
           "Nome",
-          "{{batch.name}}",
-          values["batch.name"],
+          "{{lote.nome}}",
+          values["lote.nome"],
           "#{total_batches} lote(s)"
         ),
         row(
-          "participant-name",
+          "participante-nome",
           "Participante",
           "Nome",
-          "{{participant.name}}",
-          values["participant.name"],
+          "{{participante.nome}}",
+          values["participante.nome"],
           "#{total_participants} participante(s)"
         ),
         row(
-          "participant-email",
+          "participante-email",
           "Participante",
           "E-mail",
-          "{{participant.email}}",
-          values["participant.email"],
+          "{{participante.email}}",
+          values["participante.email"],
           "#{Enum.count(participants, &(&1.email not in [nil, ""]))} com e-mail"
         ),
         row(
-          "certificate-code",
+          "certificado-codigo",
           "Certificado",
           "Código",
-          "{{certificate.code}}",
+          "{{certificado.codigo}}",
           "EXEMPLO123",
           "gerado na emissão"
         ),
         row(
-          "certificate-date",
+          "certificado-data",
           "Certificado",
           "Emissão",
-          "{{certificate.issued_at}}",
-          values["certificate.issued_at"],
+          "{{certificado.data_emissao}}",
+          values["certificado.data_emissao"],
           "gerado na emissão"
         )
       ]
@@ -600,13 +602,13 @@ defmodule CertfyWeb.EventLive.Template do
     event_rows =
       Enum.map(event.extra_data || %{}, fn {key, value} ->
         normalized = Tags.normalize_key(key)
-        row("event-#{normalized}", "Evento", key, "{{event.#{normalized}}}", value, "evento")
+        row("evento-#{normalized}", "Evento", key, "{{evento.#{normalized}}}", value, "evento")
       end)
 
-    batch_rows = extra_rows("batch", batches, total_batches, selected && selected.batch, "Lote")
+    batch_rows = extra_rows("lote", batches, total_batches, selected && selected.batch, "Lote")
 
     participant_rows =
-      extra_rows("participant", participants, total_participants, selected, "Participante")
+      extra_rows("participante", participants, total_participants, selected, "Participante")
 
     (base ++ event_rows ++ batch_rows ++ participant_rows)
     |> Enum.uniq_by(& &1.tag)
@@ -662,6 +664,8 @@ defmodule CertfyWeb.EventLive.Template do
       true -> "desconhecida"
     end
   end
+
+  defp catalog_key(tag), do: tag |> String.trim("{}") |> Tags.normalize_key()
 
   defp tag_status_class(_tag, _values), do: "text-sm"
 

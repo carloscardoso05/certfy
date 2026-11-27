@@ -73,6 +73,24 @@ const ConfirmDialog = {
   },
 }
 
+const Modal = {
+  mounted() {
+    this.dialog = this.el
+    if (this.dialog.showModal) this.dialog.showModal()
+
+    this.onCancel = (event) => {
+      event.preventDefault()
+      this.pushEvent("close_modal", {})
+    }
+
+    this.dialog.addEventListener("cancel", this.onCancel)
+  },
+  destroyed() {
+    this.dialog?.removeEventListener("cancel", this.onCancel)
+    if (this.dialog?.open) this.dialog.close()
+  },
+}
+
 const Dropdown = {
   mounted() {
     this.onClick = (e) => {
@@ -355,7 +373,7 @@ const CopyTag = {
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ConfirmDialog, Dropdown, UnsavedChanges, Drawer, SearchableSelect, CopyTag},
+  hooks: {...colocatedHooks, ConfirmDialog, Dropdown, UnsavedChanges, Drawer, SearchableSelect, CopyTag, Modal},
 })
 
 // Show progress bar on live navigation and form submits

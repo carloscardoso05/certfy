@@ -2,6 +2,7 @@ defmodule CertfyWeb.EventLive.Index do
   use CertfyWeb, :live_view
 
   alias Certfy.Events
+  alias Certfy.Events.Event
 
   @impl true
   def render(assigns) do
@@ -12,7 +13,7 @@ defmodule CertfyWeb.EventLive.Index do
         <:subtitle>Gerencie os eventos e seus lotes de certificados.</:subtitle>
 
         <:actions>
-          <.button variant="primary" navigate={~p"/events/new"}>
+          <.button variant="primary" phx-click="open_event_modal">
             <.icon name="hero-plus" /> Novo evento
           </.button>
         </:actions>
@@ -77,7 +78,7 @@ defmodule CertfyWeb.EventLive.Index do
               Limpar filtros
             </.link>
 
-            <.button :if={!@has_filters?} variant="primary" navigate={~p"/events/new"}>
+            <.button :if={!@has_filters?} variant="primary" phx-click="open_event_modal">
               <.icon name="hero-plus" /> Novo evento
             </.button>
           </:action>
@@ -160,6 +161,28 @@ defmodule CertfyWeb.EventLive.Index do
           <% end %>
         </div>
       </div>
+
+      <.modal
+        :if={@modal == :new_event}
+        id="event-modal"
+        title="Novo evento"
+        description="Depois de criar, você pode enviar o modelo e adicionar dados adicionais."
+      >
+        <.form
+          for={@event_form}
+          id="modal-event-form"
+          phx-change="validate_event"
+          phx-submit="create_event"
+          class="space-y-3"
+        >
+          <.input field={@event_form[:name]} type="text" label="Nome" required />
+
+          <div class="flex justify-end gap-2">
+            <button type="button" class="btn btn-ghost" phx-click="close_modal">Cancelar</button>
+            <.button variant="primary" phx-disable-with="Criando...">Criar evento</.button>
+          </div>
+        </.form>
+      </.modal>
     </Layouts.app>
     """
   end
@@ -173,6 +196,9 @@ defmodule CertfyWeb.EventLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "Eventos")
+     |> assign(:modal, nil)
+     |> assign(:modal_from_url, false)
+     |> assign(:event_form, to_form(%{}))
      |> assign(:filters, %{"q" => "", "template" => "all", "sort" => "updated", "page" => 1})
      |> assign(:filter_form, to_form(%{"q" => "", "template" => "all", "sort" => "updated"}))
      |> assign(:page_info, %{items: [], total: 0, page: 1, pages: 1})
@@ -182,10 +208,60 @@ defmodule CertfyWeb.EventLive.Index do
 
   @impl true
   def handle_params(params, _uri, socket) do
+    socket =
+      if params["novo"] do
+        socket
+        |> assign(:modal, :new_event)
+        |> assign(:modal_from_url, true)
+        |> assign(:event_form, to_form(event_changeset(socket, %{})))
+      else
+        socket
+      end
+
     {:noreply, load(socket, params)}
   end
 
   @impl true
+  def handle_event("open_event_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:modal, :new_event)
+     |> assign(:modal_from_url, false)
+     |> assign(:event_form, to_form(event_changeset(socket, %{})))}
+  end
+
+  def handle_event("close_modal", _params, socket) do
+    socket = assign(socket, :modal, nil)
+
+    if socket.assigns.modal_from_url do
+      {:noreply, push_patch(socket, to: list_path(socket.assigns.filters))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("validate_event", %{"event" => params}, socket) do
+    form =
+      socket
+      |> event_changeset(params)
+      |> Map.put(:action, :validate)
+      |> to_form()
+
+    {:noreply, assign(socket, :event_form, form)}
+  end
+
+  def handle_event("create_event", %{"event" => params}, socket) do
+    scope = socket.assigns.current_scope
+
+    case Events.create_event(scope, params) do
+      {:ok, event} ->
+        {:noreply, push_navigate(socket, to: ~p"/events/#{event}")}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :event_form, to_form(changeset, action: :insert))}
+    end
+  end
+
   def handle_event("filter", params, socket) do
     {:noreply, push_patch(socket, to: list_path(params))}
   end
@@ -245,6 +321,13 @@ defmodule CertfyWeb.EventLive.Index do
 
   defp count_label(1), do: "1 evento"
   defp count_label(total), do: "#{total} eventos"
+
+  defp event_changeset(socket, params) do
+    scope = socket.assigns.current_scope
+
+    %Event{user_id: scope.user.id}
+    |> Event.changeset(params, scope)
+  end
 
   defp template_badge(%{template_path: nil}), do: "badge badge-ghost badge-sm"
   defp template_badge(_event), do: "badge badge-success badge-sm"

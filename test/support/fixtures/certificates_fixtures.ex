@@ -45,9 +45,9 @@ defmodule Certfy.CertificatesFixtures do
         pdf_path: "certificates/#{scope.user.id}/#{participant.id}/v1.pdf",
         version: 1,
         snapshot: %{
-          "participant.name" => participant.name,
-          "event.name" => participant.batch.event.name,
-          "batch.name" => participant.batch.name
+          "participante.nome" => participant.name,
+          "evento.nome" => participant.batch.event.name,
+          "lote.nome" => participant.batch.name
         },
         warnings: []
       })

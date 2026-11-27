@@ -21,6 +21,8 @@ services:
   gotenberg:
     image: gotenberg/gotenberg:9-libreoffice
     restart: unless-stopped
+    environment:
+      - LIBREOFFICE_AUTO_START=true
     ports:
       - "3000:3000"
 

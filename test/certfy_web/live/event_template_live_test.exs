@@ -71,8 +71,8 @@ defmodule CertfyWeb.EventTemplateLiveTest do
     {:ok, view, html} = live(conn, ~p"/events/#{event}/template")
 
     assert html =~ "Tags que você pode usar"
-    assert html =~ "{{batch.turno}}"
-    assert html =~ "{{participant.empresa}}"
+    assert html =~ "{{lote.turno}}"
+    assert html =~ "{{participante.empresa}}"
     assert html =~ "Certfy"
 
     view

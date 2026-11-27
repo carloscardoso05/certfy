@@ -12,16 +12,16 @@ defmodule Certfy.Certificates.Tags do
     issued_at = Calendar.strftime(DateTime.utc_now(), "%d/%m/%Y")
 
     %{
-      "participant.name" => to_text(participant.name),
-      "participant.email" => to_text(participant.email),
-      "batch.name" => to_text(batch.name),
-      "event.name" => to_text(event.name),
-      "certificate.code" => to_text(certificate.code),
-      "certificate.issued_at" => issued_at
+      "participante.nome" => to_text(participant.name),
+      "participante.email" => to_text(participant.email),
+      "lote.nome" => to_text(batch.name),
+      "evento.nome" => to_text(event.name),
+      "certificado.codigo" => to_text(certificate.code),
+      "certificado.data_emissao" => issued_at
     }
-    |> put_extra("participant", participant.extra_data)
-    |> put_extra("batch", batch.extra_data)
-    |> put_extra("event", event.extra_data)
+    |> put_extra("participante", participant.extra_data)
+    |> put_extra("lote", batch.extra_data)
+    |> put_extra("evento", event.extra_data)
   end
 
   @doc """

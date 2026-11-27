@@ -37,11 +37,11 @@ defmodule Certfy.Workers.GenerateCertificate do
 
     cond do
       is_nil(event.template_path) ->
-        Certificates.mark_failed(certificate, "O evento não possui um template de certificado.")
+        Certificates.mark_failed(certificate, "O evento não possui um modelo de certificado.")
         {:discard, :template_missing}
 
       Certificates.malformed_template?(event) ->
-        Certificates.mark_failed(certificate, "O template possui tags malformadas.")
+        Certificates.mark_failed(certificate, "O modelo possui tags malformadas.")
         {:discard, :malformed_template}
 
       true ->
@@ -93,12 +93,12 @@ defmodule Certfy.Workers.GenerateCertificate do
   defp delete_old_pdf(_old_path, _new_path), do: :ok
 
   defp error_message({:malformed_tags, tags}) do
-    "O template possui tags malformadas: #{Enum.join(tags, ", ")}"
+    "O modelo possui tags malformadas: #{Enum.join(tags, ", ")}"
   end
 
   defp error_message({:http_error, status, _body}), do: "Falha ao gerar o PDF (HTTP #{status})."
-  defp error_message(:invalid_zip), do: "O template não é um arquivo .pptx válido."
-  defp error_message(:no_slides), do: "O template não possui slides."
+  defp error_message(:invalid_zip), do: "O modelo não é um arquivo .pptx válido."
+  defp error_message(:no_slides), do: "O modelo não possui slides."
   defp error_message(reason), do: "Falha ao gerar o certificado: #{inspect(reason)}"
 
   defp now, do: DateTime.utc_now() |> DateTime.truncate(:second)

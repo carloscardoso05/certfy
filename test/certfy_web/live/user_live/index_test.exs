@@ -26,6 +26,9 @@ defmodule CertfyWeb.UserLive.IndexTest do
     test "invites an email", %{conn: conn, user: admin} do
       {:ok, lv, _html} = live(conn, ~p"/users")
 
+      lv |> element("button", "Convidar usuário") |> render_click()
+      assert has_element?(lv, "#invite-modal")
+
       form = form(lv, "#invite-form", invitation: %{email: "convidado@example.com"})
       html = render_submit(form)
 
@@ -35,8 +38,20 @@ defmodule CertfyWeb.UserLive.IndexTest do
       assert Enum.any?(invitations, &(&1.email == "convidado@example.com"))
     end
 
+    test "closes the invite modal", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users")
+
+      lv |> element("button", "Convidar usuário") |> render_click()
+      assert has_element?(lv, "#invite-modal")
+
+      lv |> element("#invite-modal button[aria-label=Fechar]") |> render_click()
+      refute has_element?(lv, "#invite-modal")
+    end
+
     test "validates the invited email", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/users")
+
+      lv |> element("button", "Convidar usuário") |> render_click()
 
       result =
         lv
@@ -50,6 +65,8 @@ defmodule CertfyWeb.UserLive.IndexTest do
       other = user_fixture()
 
       {:ok, lv, _html} = live(conn, ~p"/users")
+
+      lv |> element("button", "Convidar usuário") |> render_click()
 
       result =
         lv

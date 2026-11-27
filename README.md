@@ -50,7 +50,7 @@ plan is pinned to commit `9ea75d0d66fa86e07d3c0d527b35f59a35ce3f62`.
 
 Certificate PDFs are stored in RustFS, an S3-compatible service. Each event has a
 `.pptx` template (up to 20 MB) uploaded on its template page; tags like
-`{{participant.name}}` are replaced in Elixir and the presentation is converted
+`{{participante.nome}}` are replaced in Elixir and the presentation is converted
 to PDF by Gotenberg/LibreOffice.
 
 Start the local services with:

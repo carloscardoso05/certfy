@@ -11,6 +11,12 @@ defmodule CertfyWeb.UserLive.Index do
       <.header>
         Usuários
         <:subtitle>Gerencie quem tem acesso ao {Certfy.Branding.name()}.</:subtitle>
+
+        <:actions>
+          <.button variant="primary" phx-click="open_invite">
+            <.icon name="hero-envelope" /> Convidar usuário
+          </.button>
+        </:actions>
       </.header>
 
       <.form for={@filter_form} id="user-filters" phx-change="filter" class="mb-4">
@@ -57,23 +63,6 @@ defmodule CertfyWeb.UserLive.Index do
       </.form>
 
       <div class="space-y-6">
-        <div class="card bg-base-100 shadow-sm">
-          <div class="card-body">
-            <h2 class="card-title text-base">Convidar usuário</h2>
-
-            <p class="text-sm text-base-content/70">
-              Envie um link por e-mail para a pessoa criar a conta.
-            </p>
-
-            <.form for={@invite_form} id="invite-form" phx-submit="invite" class="mt-2 space-y-3">
-              <.input field={@invite_form[:email]} type="email" label="E-mail" required />
-              <.button variant="primary" class="w-full" phx-disable-with="Enviando...">
-                Enviar convite
-              </.button>
-            </.form>
-          </div>
-        </div>
-
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body p-0">
             <div id="users" phx-update="stream" class="divide-y divide-base-300">
@@ -193,6 +182,20 @@ defmodule CertfyWeb.UserLive.Index do
           </div>
         </div>
       </div>
+
+      <.modal
+        :if={@modal == :invite}
+        id="invite-modal"
+        title="Convidar usuário"
+        description="Envie um link por e-mail para a pessoa criar a conta."
+      >
+        <.form for={@invite_form} id="invite-form" phx-submit="invite" class="space-y-3">
+          <.input field={@invite_form[:email]} type="email" label="E-mail" required />
+          <.button variant="primary" class="w-full" phx-disable-with="Enviando...">
+            Enviar convite
+          </.button>
+        </.form>
+      </.modal>
     </Layouts.app>
     """
   end
@@ -204,6 +207,7 @@ defmodule CertfyWeb.UserLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "Usuários")
+     |> assign(:modal, nil)
      |> assign(:invite_form, to_form(%{"email" => ""}, as: "invitation"))
      |> assign(:filters, filters)
      |> assign(:filter_form, to_form(filters))
@@ -258,6 +262,20 @@ defmodule CertfyWeb.UserLive.Index do
   end
 
   @impl true
+  def handle_event("open_invite", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:modal, :invite)
+     |> assign(:invite_form, to_form(%{"email" => ""}, as: "invitation"))}
+  end
+
+  def handle_event("close_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:modal, nil)
+     |> assign(:invite_form, to_form(%{"email" => ""}, as: "invitation"))}
+  end
+
   def handle_event("invite", %{"invitation" => %{"email" => email}}, socket) do
     scope = socket.assigns.current_scope
 
@@ -266,6 +284,7 @@ defmodule CertfyWeb.UserLive.Index do
         {:noreply,
          socket
          |> put_flash(:info, "Convite enviado para #{invitation.email}.")
+         |> assign(:modal, nil)
          |> assign(:invite_form, to_form(%{"email" => ""}, as: "invitation"))
          |> refresh_invitations()}
 
