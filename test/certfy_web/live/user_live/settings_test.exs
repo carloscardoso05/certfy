@@ -24,16 +24,16 @@ defmodule CertfyWeb.UserLive.SettingsTest do
       assert %{"error" => "Você precisa entrar para acessar esta página."} = flash
     end
 
-    test "redirects if user is not in sudo mode", %{conn: conn} do
-      {:ok, conn} =
+    test "keeps access with a session older than the sudo window", %{conn: conn} do
+      {:ok, _lv, html} =
         conn
         |> log_in_user(user_fixture(),
           token_authenticated_at: DateTime.add(DateTime.utc_now(:second), -11, :minute)
         )
         |> live(~p"/users/settings")
-        |> follow_redirect(conn, ~p"/users/log-in")
 
-      assert conn.resp_body =~ "Você precisa se autenticar novamente para acessar esta página."
+      assert html =~ "Configurações da conta"
+      assert html =~ "Alterar e-mail"
     end
   end
 
@@ -87,6 +87,26 @@ defmodule CertfyWeb.UserLive.SettingsTest do
 
       assert result =~ "Um link para confirmar a alteração de e-mail"
       assert Accounts.get_user_by_email(user.email)
+    end
+
+    test "updates the user email with a session older than the sudo window", %{conn: conn} do
+      new_email = unique_user_email()
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user_fixture(),
+          token_authenticated_at: DateTime.add(DateTime.utc_now(:second), -11, :minute)
+        )
+        |> live(~p"/users/settings")
+
+      result =
+        lv
+        |> form("#email_form", %{
+          "user" => %{"email" => new_email}
+        })
+        |> render_submit()
+
+      assert result =~ "Um link para confirmar a alteração de e-mail"
     end
 
     test "renders errors with invalid data (phx-change)", %{conn: conn} do

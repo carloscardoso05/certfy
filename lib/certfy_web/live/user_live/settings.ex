@@ -1,8 +1,6 @@
 defmodule CertfyWeb.UserLive.Settings do
   use CertfyWeb, :live_view
 
-  on_mount {CertfyWeb.UserAuth, :require_sudo_mode}
-
   alias Certfy.Accounts
   alias Certfy.Accounts.Scope
 
@@ -156,7 +154,6 @@ defmodule CertfyWeb.UserLive.Settings do
   def handle_event("update_email", params, socket) do
     %{"user" => user_params} = params
     user = socket.assigns.current_scope.user
-    true = Accounts.sudo_mode?(user)
 
     case Accounts.change_user_email(user, user_params) do
       %{valid?: true} = changeset ->
