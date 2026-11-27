@@ -113,7 +113,7 @@ defmodule CertfyWeb.HelpLive do
     {:ok,
      socket
      |> assign(:page_title, "Como funciona")
-     |> assign(:sample_tag, "{{participant.name}}")}
+     |> assign(:sample_tag, "{{participante.nome}}")}
   end
 
   attr :number, :string, required: true

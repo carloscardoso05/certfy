@@ -97,15 +97,8 @@ defmodule CertfyWeb.TemplateController do
 
     case params["participant_id"] do
       nil ->
-        %{
-          "event.name" => event.name,
-          "batch.name" => "Lote de exemplo",
-          "participant.name" => "Maria da Silva",
-          "participant.email" => "maria@exemplo.com",
-          "certificate.code" => code,
-          "certificate.issued_at" => Calendar.strftime(Date.utc_today(), "%d/%m/%Y")
-        }
-        |> put_extra("event", event.extra_data)
+        sample_values(event, code)
+        |> put_extra("evento", event.extra_data)
 
       participant_id ->
         participant = Events.get_participant_with_context!(scope, participant_id)
@@ -114,16 +107,20 @@ defmodule CertfyWeb.TemplateController do
         if batch.event_id == event.id do
           Tags.build(participant, batch, event, %{code: code})
         else
-          %{
-            "event.name" => event.name,
-            "batch.name" => "Lote de exemplo",
-            "participant.name" => "Maria da Silva",
-            "participant.email" => "maria@exemplo.com",
-            "certificate.code" => code,
-            "certificate.issued_at" => Calendar.strftime(Date.utc_today(), "%d/%m/%Y")
-          }
+          sample_values(event, code)
         end
     end
+  end
+
+  defp sample_values(event, code) do
+    %{
+      "evento.nome" => event.name,
+      "lote.nome" => "Lote de exemplo",
+      "participante.nome" => "Maria da Silva",
+      "participante.email" => "maria@exemplo.com",
+      "certificado.codigo" => code,
+      "certificado.data_emissao" => Calendar.strftime(Date.utc_today(), "%d/%m/%Y")
+    }
   end
 
   defp put_extra(values, prefix, extra_data) do

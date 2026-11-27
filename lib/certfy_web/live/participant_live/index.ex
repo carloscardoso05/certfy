@@ -748,14 +748,14 @@ defmodule CertfyWeb.ParticipantLive.Index do
 
     parts =
       if summary.no_template > 0,
-        do: parts ++ ["#{summary.no_template} ignorado(s) por evento sem template."],
+        do: parts ++ ["#{summary.no_template} ignorado(s) por evento sem modelo."],
         else: parts
 
     parts =
       if summary.invalid_template > 0,
         do:
           parts ++
-            ["#{summary.invalid_template} ignorado(s) por template com tags malformadas."],
+            ["#{summary.invalid_template} ignorado(s) por modelo com tags malformadas."],
         else: parts
 
     if summary.in_progress > 0,

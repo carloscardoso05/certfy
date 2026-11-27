@@ -19,7 +19,7 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 Certificate PDFs are stored in RustFS, an S3-compatible service. Each event has a
 `.pptx` template (up to 20 MB) uploaded on its template page; tags like
-`{{participant.name}}` are replaced in Elixir and the presentation is converted
+`{{participante.nome}}` are replaced in Elixir and the presentation is converted
 to PDF by Gotenberg/LibreOffice.
 
 Start the local services with:

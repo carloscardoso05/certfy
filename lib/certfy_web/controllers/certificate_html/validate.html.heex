@@ -61,19 +61,22 @@
                 <div>
                   <dt class="text-sm text-base-content/60">Participante</dt>
                   <dd class="font-medium">
-                    {@certificate.snapshot["participant.name"] || @certificate.participant.name}
+                    {@certificate.snapshot["participante.nome"] ||
+                      @certificate.snapshot["participant.name"] || @certificate.participant.name}
                   </dd>
                 </div>
                 <div>
                   <dt class="text-sm text-base-content/60">Evento</dt>
                   <dd class="font-medium">
-                    {@certificate.snapshot["event.name"] || @certificate.event.name}
+                    {@certificate.snapshot["evento.nome"] || @certificate.snapshot["event.name"] ||
+                      @certificate.event.name}
                   </dd>
                 </div>
                 <div>
                   <dt class="text-sm text-base-content/60">Lote</dt>
                   <dd class="font-medium">
-                    {@certificate.snapshot["batch.name"] || @certificate.batch.name}
+                    {@certificate.snapshot["lote.nome"] || @certificate.snapshot["batch.name"] ||
+                      @certificate.batch.name}
                   </dd>
                 </div>
                 <div>

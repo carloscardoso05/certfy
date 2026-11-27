@@ -5,10 +5,10 @@ defmodule Certfy.Certificates.TagsTest do
 
   defp values do
     %{
-      "participant.name" => "Maria",
-      "event.name" => "Seminário",
-      "event.horas" => "40",
-      "certificate.code" => "ABCDE12345"
+      "participante.nome" => "Maria",
+      "evento.nome" => "Seminário",
+      "evento.horas" => "40",
+      "certificado.codigo" => "ABCDE12345"
     }
   end
 
@@ -16,21 +16,26 @@ defmodule Certfy.Certificates.TagsTest do
     assert Tags.normalize_key("Nome Completo") == "nome_completo"
     assert Tags.normalize_key("E-mail") == "e_mail"
     assert Tags.normalize_key("Endereço") == "endereco"
-    assert Tags.normalize_key("event.Horas") == "event.horas"
+    assert Tags.normalize_key("evento.Horas") == "evento.horas"
   end
 
   test "replaces tags in escaped text" do
     assert {"Olá, Maria. 40h", []} =
-             Tags.replace("Olá, {{participant.name}}. {{event.horas}}h", values())
+             Tags.replace("Olá, {{participante.nome}}. {{evento.horas}}h", values())
   end
 
   test "accepts spaces and different casing in tags" do
-    assert {"Maria", []} = Tags.replace("{{ Participant.Name }}", values())
+    assert {"Maria", []} = Tags.replace("{{ Participante.Nome }}", values())
   end
 
   test "removes unknown tags and reports them" do
-    assert {"Olá, .", ["participant.telefone"]} =
-             Tags.replace("Olá, {{participant.telefone}}.", values())
+    assert {"Olá, .", ["participante.telefone"]} =
+             Tags.replace("Olá, {{participante.telefone}}.", values())
+  end
+
+  test "does not resolve legacy English tags" do
+    assert {"Olá, .", ["participant.name"]} =
+             Tags.replace("Olá, {{participant.name}}.", values())
   end
 
   test "keeps the qrcode tag for the renderer" do
@@ -39,7 +44,7 @@ defmodule Certfy.Certificates.TagsTest do
 
   test "escapes value HTML" do
     assert {"&lt;b&gt;Maria&lt;/b&gt;", []} =
-             Tags.replace("{{participant.name}}", %{"participant.name" => "<b>Maria</b>"})
+             Tags.replace("{{participante.nome}}", %{"participante.nome" => "<b>Maria</b>"})
   end
 
   test "builds prefixed values from the participant context" do
@@ -50,12 +55,12 @@ defmodule Certfy.Certificates.TagsTest do
 
     map = Tags.build(participant, batch, event, certificate)
 
-    assert map["participant.name"] == "Maria"
-    assert map["participant.email"] == ""
-    assert map["participant.empresa"] == "Certfy"
-    assert map["batch.turno"] == "Manhã"
-    assert map["event.horas"] == "40"
-    assert map["certificate.code"] == "ABCDE12345"
-    assert map["certificate.issued_at"] =~ ~r/\d{2}\/\d{2}\/\d{4}/
+    assert map["participante.nome"] == "Maria"
+    assert map["participante.email"] == ""
+    assert map["participante.empresa"] == "Certfy"
+    assert map["lote.turno"] == "Manhã"
+    assert map["evento.horas"] == "40"
+    assert map["certificado.codigo"] == "ABCDE12345"
+    assert map["certificado.data_emissao"] =~ ~r/\d{2}\/\d{2}\/\d{4}/
   end
 end

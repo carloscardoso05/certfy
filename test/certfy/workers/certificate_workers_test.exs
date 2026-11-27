@@ -43,7 +43,7 @@ defmodule Certfy.Workers.CertificateWorkersTest do
     assert certificate.status == :ready
     assert certificate.version == 1
     assert certificate.pdf_path =~ "certificates/#{scope.user.id}/#{participant.id}/v1.pdf"
-    assert certificate.snapshot["participant.name"] == "Maria da Silva"
+    assert certificate.snapshot["participante.nome"] == "Maria da Silva"
     assert certificate.page_count == 1
   end
 
