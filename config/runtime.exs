@@ -25,10 +25,10 @@ config :certfy, CertfyWeb.Endpoint,
 
 # Product identity shared by the UI and transactional e-mails.
 config :certfy, :branding,
-  name: System.get_env("BRAND_NAME", "Certifique"),
-  theme: System.get_env("BRAND_THEME", "certifique"),
-  mark: System.get_env("BRAND_MARK", "fadesp"),
-  from_email: System.get_env("BRAND_FROM_EMAIL", "no-reply@certifique.local")
+  name: System.get_env("BRAND_NAME", "Certfy"),
+  theme: System.get_env("BRAND_THEME", "certfy"),
+  mark: System.get_env("BRAND_MARK", "certfy"),
+  from_email: System.get_env("BRAND_FROM_EMAIL", "no-reply@certfy.local")
 
 config :ex_aws,
   access_key_id: System.get_env("RUSTFS_ACCESS_KEY", "rustfsadmin"),
@@ -44,8 +44,8 @@ config :certfy, :storage, bucket: System.get_env("RUSTFS_BUCKET", "certfy-templa
 
 config :certfy, :certificates,
   pdf_url: System.get_env("GOTENBERG_URL", "http://localhost:3000"),
-  from_email: System.get_env("CERTIFICATE_FROM_EMAIL", "no-reply@certifique.local"),
-  from_name: System.get_env("CERTIFICATE_FROM_NAME", "Certifique")
+  from_email: System.get_env("CERTIFICATE_FROM_EMAIL", "no-reply@certfy.local"),
+  from_name: System.get_env("CERTIFICATE_FROM_NAME", "Certfy")
 
 if config_env() == :dev do
   # Reload browser tabs when matching files change.

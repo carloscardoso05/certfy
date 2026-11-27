@@ -15,9 +15,8 @@ alias Certfy.Accounts.User
 alias Certfy.Repo
 
 admin_email =
-  System.get_env("CERTIFIQUE_ADMIN_EMAIL") ||
-    System.get_env("CERTFY_ADMIN_EMAIL") ||
-    "admin@certifique.local"
+  System.get_env("CERTFY_ADMIN_EMAIL") ||
+    "admin@certfy.local"
 
 now = DateTime.utc_now(:second)
 

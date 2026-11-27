@@ -32,8 +32,8 @@ config :certfy, Oban,
 config :certfy, :certificates,
   pdf_url: "http://localhost:3000",
   max_attachment_bytes: 15_000_000,
-  from_email: "no-reply@certifique.local",
-  from_name: "Certifique",
+  from_email: "no-reply@certfy.local",
+  from_name: "Certfy",
   req_options: [plug: {Req.Test, Certfy.Certificates.PDF}]
 
 # Disable swoosh api client as it is only required for production adapters

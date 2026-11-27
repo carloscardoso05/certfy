@@ -1,4 +1,4 @@
-# Certifique
+# Certfy
 
 To start your Phoenix server:
 
@@ -10,41 +10,38 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 ## Identidade visual
 
 The interface and account e-mails read their identity from `Certfy.Branding`.
-Each deployment can override the defaults at runtime:
+The defaults below keep the original Certfy identity; every customization must
+be set explicitly through the environment:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `BRAND_NAME` | `Certifique` | Product name in titles, navigation, copy and e-mails |
-| `BRAND_THEME` | `certifique` | Palette key applied as `data-brand` (`certifique` or `certfy`) |
-| `BRAND_MARK` | `fadesp` | Mark asset: `fadesp` (institutional seal, circle only) or `certfy` (original C) |
-| `BRAND_FROM_EMAIL` | `no-reply@certifique.local` | Sender address for account e-mails |
+| `BRAND_NAME` | `Certfy` | Product name in titles, navigation, copy and e-mails |
+| `BRAND_THEME` | `certfy` | Palette key applied as `data-brand` (`certfy` for the default green, `certifique` for the alternative orange/navy palette) |
+| `BRAND_MARK` | `certfy` | Mark asset: `certfy` (inline SVG) or `seal` (image assets `brand-mark.png` and `favicon.png`) |
+| `BRAND_FROM_EMAIL` | `no-reply@certfy.local` | Sender address for account e-mails |
 
-The `certifique` palette is inspired by FADESP (orange `#DD6B3B`, navy
-`#00264C`, blue `#0C4DA2`). The primary orange is darkened to `#B84E22` for
-AA-contrast text and buttons, while the mark keeps the original `#DD6B3B`.
-Set `BRAND_THEME=certfy` to render the original green identity. Certificate
-e-mails keep using `CERTIFICATE_FROM_NAME` and `CERTIFICATE_FROM_EMAIL`.
+Both palettes and both marks ship in the same image, so one build serves every
+deployment; only the variables change. Certificate e-mails keep using
+`CERTIFICATE_FROM_NAME` and `CERTIFICATE_FROM_EMAIL`.
 
-The `fadesp` mark uses the institutional seal (circle only), shared by the
-sidebar, login, public validation page and favicon. `BRAND_MARK=certfy` uses
-the original green C mark instead.
+A deployment that wants the alternative identity sets, for example:
+
+```
+BRAND_NAME=Certifique
+BRAND_THEME=certifique
+BRAND_MARK=seal
+BRAND_FROM_EMAIL=no-reply@certifique.local
+CERTIFICATE_FROM_NAME=Certifique
+CERTIFICATE_FROM_EMAIL=no-reply@certifique.local
+```
 
 ## Access model
 
 - There is no public sign-up. Admins invite people from the **Usuários** page (`/users`).
 - Login is passwordless: enter your email at `/users/log-in` and open the link sent to your inbox.
-- The first admin is created by `mix run priv/repo/seeds.exs` (email from `CERTIFIQUE_ADMIN_EMAIL`; `CERTFY_ADMIN_EMAIL` is still accepted, default `admin@certifique.local`).
+- The first admin is created by `mix run priv/repo/seeds.exs` (email from `CERTFY_ADMIN_EMAIL`, default `admin@certfy.local`).
 - In development, sent emails are available at `/dev/mailbox`.
 - Admins can deactivate/reactivate users and change roles between `USER` and `ADMIN`.
-
-## Active Directory (planned)
-
-Authentication stays on magic links and admin invitations for now. The
-migration to LDAP/Active Directory is documented but not implemented; see
-[`docs/ldap-migration.md`](docs/ldap-migration.md) for the architecture, the
-configuration matrix, the database migration and the rollout checklist. That
-plan is pinned to commit `9ea75d0d66fa86e07d3c0d527b35f59a35ce3f62`.
-
 
 ## Object storage and certificates
 
@@ -100,8 +97,9 @@ Ready to run in production? Please [check our deployment guides](https://phoenix
 
 ## Production deploy (Dokploy)
 
-The production stack lives in `docker-compose.prod.yml` and builds the image from
-`Dockerfile` (Elixir release on Debian slim, running as a non-root user).
+The production stack lives in `docker-compose.prod.yml` and **pulls** the image
+`CERTFY_IMAGE`; it never builds on the server. The image comes from `Dockerfile`
+(Elixir release on Debian slim, running as a non-root user).
 
 Services:
 
@@ -117,6 +115,7 @@ Services:
 
 | Variable | Notes |
 |---|---|
+| `CERTFY_IMAGE` | Image reference to pull, e.g. `ghcr.io/carloscardoso05/certfy:0.1.0-abc1234` |
 | `APP_HOST` | Public hostname used by Phoenix (`PHX_HOST`) |
 | `SECRET_KEY_BASE` | Generate with `mix phx.gen.secret` |
 | `POSTGRES_PASSWORD` | Password for the internal database |
@@ -125,22 +124,48 @@ Services:
 
 Optional: `POSTGRES_USER`, `POSTGRES_DB`, `POOL_SIZE`, `RUSTFS_BUCKET`,
 `RUSTFS_REGION`, `CERTIFICATE_FROM_EMAIL`, `CERTIFICATE_FROM_NAME`,
-`CERTFY_ADMIN_EMAIL`, `SMTP_*` (see `config/runtime.exs`).
+`CERTFY_ADMIN_EMAIL`, `SMTP_*` (see `config/runtime.exs`) and the branding
+variables described in **Identidade visual**.
 
 `POSTGRES_PASSWORD` is interpolated into `DATABASE_URL`, so use a URL-safe
 password (letters, digits and `-_.~`) or set `DATABASE_URL` explicitly.
+
+### Building and publishing the image
+
+Build on a machine with the same architecture as the server (the current
+deployment targets `linux/amd64`) and push to the public registry:
+
+```bash
+docker login ghcr.io -u carloscardoso05          # PAT with write:packages
+docker build -t ghcr.io/carloscardoso05/certfy:0.1.0-<sha> .
+docker push ghcr.io/carloscardoso05/certfy:0.1.0-<sha>
+```
+
+Then make the package public once (GitHub → Packages → the `certfy` package →
+Package settings → Change visibility). Keep one image per release and use the
+branding variables to change the identity; never build one image per branch.
 
 ### Steps in Dokploy
 
 1. Create a **Compose** application pointing to this repository and to
    `docker-compose.prod.yml`.
-2. Fill the environment variables above in the Dokploy **Environment** tab.
+2. Fill the environment variables above in the Dokploy **Environment** tab,
+   including `CERTFY_IMAGE` with the published tag.
 3. Add a domain to the `app` service (container port `4000`). Dokploy/Traefik
    handles TLS; no labels or `ports:` are needed in the compose file.
-4. Deploy. The `migrate` service runs first and the app starts afterwards.
+4. Deploy. The image is pulled, the `migrate` service runs first and the app
+   starts afterwards.
 
 The compose file attaches `app` to the external `dokploy-network`; keep that
-network name unless your Dokploy installation uses another one.
+network name unless your Dokploy installation uses another one. There is no
+fixed project name, so two deployments can share the same server.
+
+To build and run the same compose locally:
+
+```bash
+CERTFY_IMAGE=certfy:local docker compose \
+  -f docker-compose.prod.yml -f docker-compose.build.yml up --build
+```
 
 ### First admin
 
@@ -166,7 +191,6 @@ volume is mounted at `/var/lib/postgresql`.
 docker build -t certfy:local .
 docker run --rm -p 4000:4000 --env-file .env.prod certfy:local
 ```
-
 ## Learn more
 
 * Official website: https://www.phoenixframework.org/

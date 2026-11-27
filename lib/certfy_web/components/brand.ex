@@ -15,7 +15,7 @@ defmodule CertfyWeb.Components.Brand do
 
   def brand_logo(assigns) do
     ~H"""
-    <%= if Branding.mark() == "fadesp" do %>
+    <%= if Branding.mark() == "seal" do %>
       <img
         id={@id}
         src="/images/brand-mark.png"

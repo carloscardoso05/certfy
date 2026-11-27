@@ -126,11 +126,12 @@
   --noise: 0;
 }
 
-/* Certifique identity: FADESP-inspired orange and navy. These values sit on
-   top of the daisyUI light/dark themes, so switching `BRAND_THEME` changes
-   colours only, never layout or component behaviour. The primary orange is
-   darkened from the brand #DD6B3B so text and buttons keep AA contrast; the
-   original hue stays on the mark through --color-brand. */
+/* Alternative identity palette (orange and navy). It is opt-in through the
+   BRAND_THEME runtime variable (`data-brand`), so the default Certfy theme
+   stays untouched. These values sit on top of the daisyUI light/dark themes:
+   switching `BRAND_THEME` changes colours only, never layout or behaviour. The
+   primary colour is darkened from the brand tone so text and buttons keep AA
+   contrast; the original hue stays on the mark through --color-brand. */
 :root {
   --color-brand: var(--color-primary);
 }
