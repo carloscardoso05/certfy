@@ -25,6 +25,9 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 certfy-*.tar
 
+# Cache of registered Mix tasks created when running mix in the project.
+/.mix_tasks
+
 # Ignore assets that are produced by build tools.
 /priv/static/assets/
 
