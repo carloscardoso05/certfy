@@ -8,9 +8,9 @@ defmodule CertfyWeb.ParticipantLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} nav={:participants}>
       <.breadcrumb items={[
-        %{label: "Participantes", navigate: ~p"/participants"},
-        %{label: @event.name, navigate: ~p"/participants?event_id=#{@event.id}"},
-        %{label: @batch.name, navigate: ~p"/participants?batch_id=#{@batch.id}"},
+        %{label: "Eventos", navigate: ~p"/events"},
+        %{label: @event.name, navigate: ~p"/events/#{@event}"},
+        %{label: @batch.name, navigate: ~p"/batches/#{@batch}"},
         %{label: @participant.name}
       ]} />
       <.header>
@@ -20,10 +20,9 @@ defmodule CertfyWeb.ParticipantLive.Show do
         <:actions>
           <.button
             navigate={~p"/participants?batch_id=#{@batch.id}"}
-            aria-label="Voltar para participantes"
             variant="ghost"
           >
-            <.icon name="hero-arrow-left" />
+            <.icon name="hero-arrow-left" /> Voltar para participantes
           </.button>
 
           <.button
@@ -139,7 +138,10 @@ defmodule CertfyWeb.ParticipantLive.Show do
           <% end %>
         </.section>
 
-        <.section title="Dados adicionais">
+        <.section
+          :if={map_size(@participant.extra_data) > 0}
+          title="Dados adicionais"
+        >
           <.key_value_list id="participant-extra-data-list" data={@participant.extra_data} />
         </.section>
 
@@ -199,13 +201,13 @@ defmodule CertfyWeb.ParticipantLive.Show do
     socket =
       cond do
         summary.no_template > 0 ->
-          put_flash(socket, :error, "O evento não possui um template de certificado.")
+          put_flash(socket, :error, "O evento não possui um modelo de certificado.")
 
         summary.invalid_template > 0 ->
           put_flash(
             socket,
             :error,
-            "O template possui tags malformadas. Corrija e envie novamente."
+            "O modelo possui tags malformadas. Corrija e envie novamente."
           )
 
         true ->

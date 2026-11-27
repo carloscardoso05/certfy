@@ -13,16 +13,16 @@ defmodule CertfyWeb.EventLive.Template do
       <.breadcrumb items={[
         %{label: "Eventos", navigate: ~p"/events"},
         %{label: @event.name, navigate: ~p"/events/#{@event}"},
-        %{label: "Template"}
+        %{label: "Modelo"}
       ]} />
 
       <.header>
-        Template do certificado
+        Modelo do certificado
         <:subtitle>Arquivo .pptx, tags e valores disponíveis para {@event.name}.</:subtitle>
 
         <:actions>
-          <.button navigate={~p"/events/#{@event}"} variant="ghost" aria-label="Voltar para o evento">
-            <.icon name="hero-arrow-left" />
+          <.button navigate={~p"/events/#{@event}"} variant="ghost">
+            <.icon name="hero-arrow-left" /> Voltar para o evento
           </.button>
 
           <.button
@@ -59,14 +59,62 @@ defmodule CertfyWeb.EventLive.Template do
         </:actions>
       </.header>
 
+      <.event_tabs
+        event={@event}
+        active={:template}
+        batch_count={@batch_count}
+        participant_count={@participant_count}
+      />
+
+      <div class="mb-4 grid gap-3 rounded-box border border-base-300 bg-base-100 p-5 md:grid-cols-3">
+        <div class="flex gap-3">
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            1
+          </span>
+          <div>
+            <p class="font-medium">Monte o .pptx</p>
+            <p class="mt-1 text-sm text-base-content/65">
+              Escreva tags como
+              <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participant.name}}</code>
+              nos lugares que serão preenchidos.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            2
+          </span>
+          <div>
+            <p class="font-medium">Envie o arquivo</p>
+            <p class="mt-1 text-sm text-base-content/65">
+              O Certfy confere as tags encontradas e avisa se alguma estiver malformada.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            3
+          </span>
+          <div>
+            <p class="font-medium">Pré-visualize e gere</p>
+            <p class="mt-1 text-sm text-base-content/65">
+              Confira com um participante e gere os certificados no lote.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div
         :if={@malformed != []}
         class="mb-4 rounded-box border border-error/40 bg-error/10 p-4 text-sm"
         role="alert"
       >
-        <p class="font-semibold text-error">Este template tem tags malformadas.</p>
+        <p class="font-semibold text-error">Este modelo tem tags malformadas.</p>
         <p class="mt-1 text-base-content/70">
-          Geração e o preview com dados estão bloqueados até o arquivo ser corrigido e reenviado.
+          A geração e a pré-visualização com dados ficam bloqueadas até o arquivo ser corrigido e
+          reenviado.
         </p>
         <ul class="mt-2 list-disc pl-5">
           <li :for={item <- @malformed}>
@@ -79,11 +127,11 @@ defmodule CertfyWeb.EventLive.Template do
         <div class="space-y-4">
           <.sheet>
             <.section
-              title="Arquivo do template"
+              title="Arquivo do modelo"
               description="Envie ou substitua o .pptx deste evento."
             >
               <p :if={@event.template_path} class="mb-3 text-sm text-base-content/70">
-                Já existe um template enviado. Enviar outro substitui o arquivo atual.
+                Já existe um modelo enviado. Enviar outro substitui o arquivo atual.
               </p>
 
               <.form
@@ -134,25 +182,66 @@ defmodule CertfyWeb.EventLive.Template do
                 </div>
 
                 <.button variant="primary" class="mt-3 w-full" phx-disable-with="Enviando...">
-                  <.icon name="hero-arrow-up-tray" /> Enviar template
+                  <.icon name="hero-arrow-up-tray" /> Enviar modelo
                 </.button>
               </.form>
 
               <.button
                 :if={@event.template_path}
                 phx-click="remove_template"
-                data-confirm="Remover o template deste evento?"
+                data-confirm="Remover o modelo deste evento?"
                 variant="danger"
                 class="mt-3 w-full"
               >
-                <.icon name="hero-trash" /> Remover template
+                <.icon name="hero-trash" /> Remover modelo
               </.button>
+            </.section>
+          </.sheet>
+        </div>
+
+        <div class="space-y-4">
+          <.sheet>
+            <.section
+              title="Como usar as tags"
+              description="As tags são espaços reservados que o Certfy preenche na geração."
+            >
+              <p class="text-sm text-base-content/70">
+                Copie a tag e cole no PowerPoint, no lugar onde o valor deve aparecer. Você pode
+                usar as tags dentro de caixas de texto, tabelas e formas.
+              </p>
+
+              <ul class="mt-4 space-y-2 text-sm">
+                <li>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{event.name}}</code>
+                  <span class="text-base-content/65">— nome do evento.</span>
+                </li>
+                <li>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{batch.name}}</code>
+                  <span class="text-base-content/65">— nome do lote.</span>
+                </li>
+                <li>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participant.name}}</code>
+                  <span class="text-base-content/65">— nome do participante.</span>
+                </li>
+                <li>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{participant.email}}</code>
+                  <span class="text-base-content/65">— e-mail do participante.</span>
+                </li>
+                <li>
+                  <code class="rounded bg-base-200 px-1 py-0.5" phx-no-curly-interpolation>{{qrcode}}</code>
+                  <span class="text-base-content/65">— QR code de validação do certificado.</span>
+                </li>
+              </ul>
+
+              <p class="mt-4 text-sm text-base-content/60">
+                Os demais dados do evento, do lote e do participante aparecem na tabela abaixo.
+              </p>
             </.section>
           </.sheet>
 
           <.sheet>
             <.section
-              title="Tags no template"
+              title="Tags no modelo"
               description="Tags encontradas no arquivo atual."
             >
               <p :if={@template_tags == []} class="text-sm text-base-content/60">
@@ -180,75 +269,71 @@ defmodule CertfyWeb.EventLive.Template do
             </.section>
           </.sheet>
         </div>
-
-        <div class="space-y-4">
-          <.sheet>
-            <.section
-              title="Dados disponíveis"
-              description="Chaves, tags normalizadas e valores que podem ser usados no PowerPoint."
-            >
-              <.form
-                for={@participant_form}
-                id="participant-select-form"
-                phx-change="select_participant"
-              >
-                <.searchable_select
-                  id="template-participant"
-                  name="participant_id"
-                  label="Valores de exemplo"
-                  placeholder="Dados de exemplo"
-                  options={@participant_options}
-                  selected={@selected_participant && @selected_participant.id}
-                  class="w-full"
-                />
-              </.form>
-
-              <p class="mt-2 text-sm text-base-content/60">
-                Escolha um participante para ver os valores reais daquele lote/participante.
-                Sem seleção, os valores são exemplos.
-              </p>
-
-              <div class="mt-4 overflow-x-auto">
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>Origem</th>
-                      <th>Chave</th>
-                      <th>Tag</th>
-                      <th>Valor</th>
-                      <th>Disponibilidade</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr :for={row <- @catalog_rows}>
-                      <td class="whitespace-nowrap text-sm">{row.source}</td>
-                      <td class="text-sm">{row.key}</td>
-                      <td class="font-mono text-xs break-all">{row.tag}</td>
-                      <td class="max-w-56 break-words text-sm">{row.value}</td>
-                      <td class="whitespace-nowrap text-xs text-base-content/60">
-                        {row.availability}
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          class="btn btn-ghost btn-xs"
-                          data-copy={row.tag}
-                          phx-hook="CopyTag"
-                          id={"copy-#{row.id}"}
-                          aria-label={"Copiar #{row.tag}"}
-                        >
-                          <.icon name="hero-clipboard" class="size-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </.section>
-          </.sheet>
-        </div>
       </div>
+
+      <.sheet class="mt-4">
+        <.section
+          title="Tags que você pode usar"
+          description="Copie a tag e cole no PowerPoint. Escolha um participante para ver valores reais."
+        >
+          <.form
+            for={@participant_form}
+            id="participant-select-form"
+            phx-change="select_participant"
+          >
+            <.searchable_select
+              id="template-participant"
+              name="participant_id"
+              label="Valores de exemplo"
+              placeholder="Dados de exemplo"
+              options={@participant_options}
+              selected={@selected_participant && @selected_participant.id}
+              class="w-full"
+            />
+          </.form>
+
+          <p class="mt-2 text-sm text-base-content/60">
+            Sem um participante selecionado, os valores são exemplos.
+          </p>
+
+          <div class="mt-4 overflow-x-auto">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Tag</th>
+                  <th>Exemplo</th>
+                  <th>Disponibilidade</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={row <- @catalog_rows}>
+                  <td>
+                    <p class="font-mono text-xs break-all">{row.tag}</p>
+                    <p class="mt-0.5 text-xs text-base-content/55">{row.source}</p>
+                  </td>
+                  <td class="max-w-56 break-words text-sm">{row.value}</td>
+                  <td class="whitespace-nowrap text-xs text-base-content/60">
+                    {row.availability}
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      data-copy={row.tag}
+                      phx-hook="CopyTag"
+                      id={"copy-#{row.id}"}
+                      aria-label={"Copiar #{row.tag}"}
+                    >
+                      <.icon name="hero-clipboard" class="size-4" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </.section>
+      </.sheet>
     </Layouts.app>
     """
   end
@@ -259,7 +344,7 @@ defmodule CertfyWeb.EventLive.Template do
 
     {:ok,
      socket
-     |> assign(:page_title, "Template")
+     |> assign(:page_title, "Modelo do certificado")
      |> assign(:event, event)
      |> assign(:upload_form, to_form(%{}))
      |> assign(:participant_form, to_form(%{}))
@@ -341,11 +426,11 @@ defmodule CertfyWeb.EventLive.Template do
               {:noreply,
                socket
                |> assign(:event, event)
-               |> put_flash(:info, "Template enviado.")
+               |> put_flash(:info, "Modelo enviado.")
                |> load_template_data()}
             else
               _ ->
-                {:noreply, put_flash(socket, :error, "Não foi possível salvar o template.")}
+                {:noreply, put_flash(socket, :error, "Não foi possível salvar o modelo.")}
             end
 
           {:error, _reason} ->
@@ -375,10 +460,10 @@ defmodule CertfyWeb.EventLive.Template do
       {:noreply,
        socket
        |> assign(:event, event)
-       |> put_flash(:info, "Template removido.")
+       |> put_flash(:info, "Modelo removido.")
        |> load_template_data()}
     else
-      _ -> {:noreply, put_flash(socket, :error, "Não foi possível remover o template.")}
+      _ -> {:noreply, put_flash(socket, :error, "Não foi possível remover o modelo.")}
     end
   end
 
@@ -451,6 +536,8 @@ defmodule CertfyWeb.EventLive.Template do
     |> assign(:template_tags, template_tags)
     |> assign(:malformed, malformed)
     |> assign(:values, values)
+    |> assign(:batch_count, Events.count_batches(scope, event))
+    |> assign(:participant_count, length(participants))
     |> assign(
       :catalog_rows,
       catalog_rows(scope, event, participants, selected, values)

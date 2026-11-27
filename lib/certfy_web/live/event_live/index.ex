@@ -36,13 +36,13 @@ defmodule CertfyWeb.EventLive.Index do
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-sm font-medium">Template</span>
+            <span class="mb-1 block text-sm font-medium">Modelo</span>
             <select name="template" class="select select-bordered w-full">
               <option value="all" selected={@filters["template"] == "all"}>Todos</option>
 
-              <option value="yes" selected={@filters["template"] == "yes"}>Com template</option>
+              <option value="yes" selected={@filters["template"] == "yes"}>Com modelo</option>
 
-              <option value="no" selected={@filters["template"] == "no"}>Sem template</option>
+              <option value="no" selected={@filters["template"] == "no"}>Sem modelo</option>
             </select>
           </label>
 
@@ -86,7 +86,7 @@ defmodule CertfyWeb.EventLive.Index do
 
       <div :if={!@empty?} class="overflow-hidden rounded-box border border-base-300 bg-base-100">
         <div class="hidden grid-cols-[minmax(0,1fr)_8rem_8rem_13rem] gap-4 border-b border-base-300 px-4 py-3 text-sm font-medium text-base-content/70 md:grid">
-          <span>Nome</span> <span>Template</span> <span>Dados adicionais</span>
+          <span>Nome</span> <span>Modelo</span> <span>Dados adicionais</span>
           <span class="text-right">Ações</span>
         </div>
 

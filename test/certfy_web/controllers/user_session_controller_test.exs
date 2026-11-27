@@ -18,7 +18,7 @@ defmodule CertfyWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/events"
+      assert redirected_to(conn) == ~p"/"
 
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/events")
@@ -39,7 +39,7 @@ defmodule CertfyWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/events"
+      assert redirected_to(conn) == ~p"/"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Usuário confirmado com sucesso."
 
       assert Accounts.get_user!(user.id).confirmed_at

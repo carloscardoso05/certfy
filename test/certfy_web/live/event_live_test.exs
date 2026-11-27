@@ -25,7 +25,7 @@ defmodule CertfyWeb.EventLiveTest do
 
       assert html =~ "Eventos"
       assert html =~ event.name
-      assert html =~ "Template"
+      assert html =~ "Modelo"
     end
 
     test "filters events by query and template", %{conn: conn, scope: scope} do
@@ -58,13 +58,13 @@ defmodule CertfyWeb.EventLiveTest do
              |> form("#event-form", event: @invalid_attrs)
              |> render_change() =~ "não pode ficar em branco"
 
-      assert {:ok, index_live, _html} =
+      assert {:ok, show_live, _html} =
                form_live
                |> form("#event-form", event: @create_attrs)
                |> render_submit()
-               |> follow_redirect(conn, ~p"/events")
+               |> follow_redirect(conn)
 
-      html = render(index_live)
+      html = render(show_live)
       assert html =~ "Evento criado com sucesso."
       assert html =~ "some name"
     end
@@ -89,11 +89,11 @@ defmodule CertfyWeb.EventLiveTest do
         "extra_data" => %{"0" => %{"key" => "sala", "value" => "A"}}
       })
 
-      assert {:ok, _index_live, _html} =
+      assert {:ok, _show_live, _html} =
                form_live
                |> form("#event-form")
                |> render_submit()
-               |> follow_redirect(conn, ~p"/events")
+               |> follow_redirect(conn)
 
       event =
         scope
@@ -189,7 +189,7 @@ defmodule CertfyWeb.EventLiveTest do
       {:ok, _show_live, html} = live(conn, ~p"/events/#{event}")
 
       assert html =~ "Enviado"
-      assert html =~ "Gerenciar template"
+      assert html =~ "Gerenciar modelo"
     end
   end
 end

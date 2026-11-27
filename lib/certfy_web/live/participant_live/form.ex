@@ -10,19 +10,29 @@ defmodule CertfyWeb.ParticipantLive.Form do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} nav={:participants}>
       <.breadcrumb items={
-        if @live_action == :new do
-          [
-            %{label: "Participantes", navigate: ~p"/participants"},
-            %{label: "Novo participante"}
-          ]
-        else
-          [
-            %{label: "Participantes", navigate: ~p"/participants"},
-            %{label: @event.name, navigate: ~p"/participants?event_id=#{@event.id}"},
-            %{label: @batch.name, navigate: ~p"/participants?batch_id=#{@batch.id}"},
-            %{label: @participant.name, navigate: ~p"/participants/#{@participant}"},
-            %{label: "Editar participante"}
-          ]
+        cond do
+          @live_action == :new and @batch ->
+            [
+              %{label: "Eventos", navigate: ~p"/events"},
+              %{label: @event.name, navigate: ~p"/events/#{@event}"},
+              %{label: @batch.name, navigate: ~p"/batches/#{@batch}"},
+              %{label: "Novo participante"}
+            ]
+
+          @live_action == :new ->
+            [
+              %{label: "Participantes", navigate: ~p"/participants"},
+              %{label: "Novo participante"}
+            ]
+
+          true ->
+            [
+              %{label: "Eventos", navigate: ~p"/events"},
+              %{label: @event.name, navigate: ~p"/events/#{@event}"},
+              %{label: @batch.name, navigate: ~p"/batches/#{@batch}"},
+              %{label: @participant.name, navigate: ~p"/participants/#{@participant}"},
+              %{label: "Editar participante"}
+            ]
         end
       } />
       <.header>
@@ -84,7 +94,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
 
             <footer class="flex flex-wrap justify-end gap-2 bg-base-200/50 px-5 py-4 sm:px-6">
               <.button
-                navigate={return_path(@current_scope, @return_to, @participant)}
+                navigate={cancel_path(@live_action, @batch, @participant, @return_to)}
                 variant="soft"
               >
                 Cancelar
@@ -272,9 +282,7 @@ defmodule CertfyWeb.ParticipantLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Participante criado com sucesso.")
-         |> push_navigate(
-           to: return_path(socket.assigns.current_scope, socket.assigns.return_to, participant)
-         )}
+         |> push_navigate(to: ~p"/participants?batch_id=#{participant.batch_id}")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -285,6 +293,13 @@ defmodule CertfyWeb.ParticipantLive.Form do
     rows = KeyValue.rows_from_params(params["extra_data"])
     {Map.put(form_params, "extra_data", KeyValue.to_map(rows)), rows}
   end
+
+  defp cancel_path(:new, %{id: batch_id}, _participant, _return_to),
+    do: ~p"/participants?batch_id=#{batch_id}"
+
+  defp cancel_path(:new, nil, _participant, _return_to), do: ~p"/participants"
+  defp cancel_path(:edit, _batch, participant, "show"), do: ~p"/participants/#{participant}"
+  defp cancel_path(:edit, _batch, _participant, _return_to), do: ~p"/participants"
 
   defp return_path(_scope, "index", _participant), do: ~p"/participants"
   defp return_path(_scope, "show", participant), do: ~p"/participants/#{participant}"

@@ -8,19 +8,30 @@ defmodule CertfyWeb.BatchLive.Form do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope} nav={:batches}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} nav={:events}>
       <.breadcrumb items={
-        if @live_action == :new do
-          [
-            %{label: "Lotes", navigate: ~p"/batches"},
-            %{label: "Novo lote"}
-          ]
-        else
-          [
-            %{label: "Lotes", navigate: ~p"/batches"},
-            %{label: @batch.name, navigate: ~p"/batches/#{@batch}"},
-            %{label: "Editar lote"}
-          ]
+        cond do
+          @live_action == :new and @event ->
+            [
+              %{label: "Eventos", navigate: ~p"/events"},
+              %{label: @event.name, navigate: ~p"/events/#{@event}"},
+              %{label: "Lotes", navigate: ~p"/batches?event_id=#{@event.id}"},
+              %{label: "Novo lote"}
+            ]
+
+          @live_action == :new ->
+            [
+              %{label: "Lotes", navigate: ~p"/batches"},
+              %{label: "Novo lote"}
+            ]
+
+          true ->
+            [
+              %{label: "Eventos", navigate: ~p"/events"},
+              %{label: @event.name, navigate: ~p"/events/#{@event}"},
+              %{label: @batch.name, navigate: ~p"/batches/#{@batch}"},
+              %{label: "Editar lote"}
+            ]
         end
       } />
       <.header>
@@ -80,7 +91,7 @@ defmodule CertfyWeb.BatchLive.Form do
 
             <footer class="flex flex-wrap justify-end gap-2 bg-base-200/50 px-5 py-4 sm:px-6">
               <.button
-                navigate={return_path(@current_scope, @return_to, @batch)}
+                navigate={cancel_path(@live_action, @event, @batch, @return_to)}
                 variant="soft"
               >
                 Cancelar
@@ -96,9 +107,11 @@ defmodule CertfyWeb.BatchLive.Form do
 
   @impl true
   def mount(params, _session, socket) do
+    default = if socket.assigns.live_action == :new, do: "show", else: "index"
+
     {:ok,
      socket
-     |> assign(:return_to, return_to(params["return_to"]))
+     |> assign(:return_to, return_to(params["return_to"] || default))
      |> assign(
        :event_options,
        Enum.map(Events.list_events(socket.assigns.current_scope), &{&1.name, &1.id})
@@ -256,6 +269,14 @@ defmodule CertfyWeb.BatchLive.Form do
     {Map.put(form_params, "extra_data", KeyValue.to_map(rows)), rows}
   end
 
+  defp cancel_path(:new, %{id: event_id}, _batch, _return_to),
+    do: ~p"/batches?event_id=#{event_id}"
+
+  defp cancel_path(:new, nil, _batch, _return_to), do: ~p"/batches"
+  defp cancel_path(:edit, _event, _batch, "index"), do: ~p"/batches"
+  defp cancel_path(:edit, _event, batch, _return_to), do: ~p"/batches/#{batch}"
+
+  defp return_path(_scope, "show", %{id: nil}), do: ~p"/batches"
   defp return_path(_scope, "index", _batch), do: ~p"/batches"
   defp return_path(_scope, "show", batch), do: ~p"/batches/#{batch}"
 end

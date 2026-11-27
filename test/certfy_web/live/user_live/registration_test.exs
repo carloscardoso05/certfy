@@ -62,7 +62,7 @@ defmodule CertfyWeb.UserLive.RegistrationTest do
       form = form(lv, "#registration_form")
       conn = follow_trigger_action(form, conn)
 
-      assert redirected_to(conn) == ~p"/events"
+      assert redirected_to(conn) == ~p"/"
 
       user = Accounts.get_user_by_email(invitation.email)
       assert user.name == "Maria Silva"

@@ -32,6 +32,7 @@ defmodule CertfyWeb.ParticipantLive.ImportTest do
 
     assert html =~ "Importar participantes"
     assert has_element?(lv, "#import-upload-form")
+    assert render(lv) =~ ~s(phx-change="validate_upload")
 
     upload =
       file_input(lv, "#import-upload-form", :planilha, [%{name: "lista.csv", content: content}])

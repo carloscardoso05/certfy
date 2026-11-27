@@ -27,13 +27,13 @@ defmodule CertfyWeb.EventTemplateLiveTest do
     event = event_fixture(scope)
 
     {:ok, view, html} = live(conn, ~p"/events/#{event}/template")
-    assert html =~ "Arquivo do template"
+    assert html =~ "Arquivo do modelo"
 
     upload(view, "test/fixtures/certificate_template.pptx", "modelo.pptx")
     view |> element("#template-upload-form") |> render_submit()
 
     html = render(view)
-    assert html =~ "Template enviado."
+    assert html =~ "Modelo enviado."
     assert html =~ "participant.name"
     assert html =~ "event.horas"
 
@@ -54,7 +54,7 @@ defmodule CertfyWeb.EventTemplateLiveTest do
 
     html = render(view)
     assert html =~ "tags malformadas"
-    assert html =~ "Geração e o preview com dados estão bloqueados"
+    assert html =~ "A geração e a pré-visualização com dados ficam bloqueadas"
 
     event = Events.get_event!(scope, event.id)
     assert event.template_report["malformed"] != []
@@ -70,7 +70,7 @@ defmodule CertfyWeb.EventTemplateLiveTest do
 
     {:ok, view, html} = live(conn, ~p"/events/#{event}/template")
 
-    assert html =~ "Dados disponíveis"
+    assert html =~ "Tags que você pode usar"
     assert html =~ "{{batch.turno}}"
     assert html =~ "{{participant.empresa}}"
     assert html =~ "Certfy"
@@ -91,7 +91,7 @@ defmodule CertfyWeb.EventTemplateLiveTest do
 
     view |> element("button[phx-click=remove_template]") |> render_click()
 
-    assert render(view) =~ "Template removido."
+    assert render(view) =~ "Modelo removido."
     assert is_nil(Events.get_event!(scope, event.id).template_path)
   end
 end

@@ -69,7 +69,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
                  participant: Map.put(@create_attrs, :batch_id, batch.id)
                )
                |> render_submit()
-               |> follow_redirect(conn, ~p"/participants")
+               |> follow_redirect(conn, ~p"/participants?batch_id=#{batch.id}")
 
       html = render(index_live)
       assert html =~ "Participante criado com sucesso."
@@ -91,7 +91,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
                  participant: %{name: "sem email", email: "", batch_id: batch.id}
                )
                |> render_submit()
-               |> follow_redirect(conn, ~p"/participants")
+               |> follow_redirect(conn, ~p"/participants?batch_id=#{batch.id}")
 
       html = render(index_live)
       assert html =~ "sem email"
@@ -119,7 +119,7 @@ defmodule CertfyWeb.ParticipantLiveTest do
                form_live
                |> form("#participant-form")
                |> render_submit()
-               |> follow_redirect(conn, ~p"/participants")
+               |> follow_redirect(conn, ~p"/participants?batch_id=#{batch.id}")
 
       participant =
         scope

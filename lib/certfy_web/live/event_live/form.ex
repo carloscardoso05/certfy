@@ -25,7 +25,7 @@ defmodule CertfyWeb.EventLive.Form do
       } />
       <.header>
         {@page_title}
-        <:subtitle>Preencha os dados do evento e gerencie o template do certificado.</:subtitle>
+        <:subtitle>Preencha os dados do evento e gerencie o modelo do certificado.</:subtitle>
       </.header>
 
       <div class="mx-auto w-full max-w-2xl">
@@ -55,14 +55,14 @@ defmodule CertfyWeb.EventLive.Form do
             </.section>
 
             <.section
-              title="Template do certificado"
-              description="O arquivo .pptx e o catálogo de tags são gerenciados na página do template."
+              title="Modelo do certificado"
+              description="O arquivo .pptx e o catálogo de tags são gerenciados na página do modelo."
             >
               <p class="text-base text-base-content/70">
                 <%= if @event.id do %>
-                  Envie, substitua ou visualize o template deste evento na página dedicada.
+                  Envie, substitua ou visualize o modelo deste evento na página dedicada.
                 <% else %>
-                  Salve o evento primeiro para enviar o template.
+                  Salve o evento primeiro para enviar o modelo.
                 <% end %>
               </p>
 
@@ -72,7 +72,7 @@ defmodule CertfyWeb.EventLive.Form do
                 variant="soft"
                 class="mt-4"
               >
-                <.icon name="hero-rectangle-group" /> Gerenciar template
+                <.icon name="hero-rectangle-group" /> Gerenciar modelo
               </.button>
             </.section>
 
@@ -94,9 +94,11 @@ defmodule CertfyWeb.EventLive.Form do
 
   @impl true
   def mount(params, _session, socket) do
+    default = if socket.assigns.live_action == :new, do: "show", else: "index"
+
     {:ok,
      socket
-     |> assign(:return_to, return_to(params["return_to"]))
+     |> assign(:return_to, return_to(params["return_to"] || default))
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -189,6 +191,7 @@ defmodule CertfyWeb.EventLive.Form do
   defp save_message(:new), do: "Evento criado com sucesso."
   defp save_message(:edit), do: "Evento atualizado com sucesso."
 
+  defp return_path(_scope, "show", %{id: nil}), do: ~p"/events"
   defp return_path(_scope, "index", _event), do: ~p"/events"
   defp return_path(_scope, "show", event), do: ~p"/events/#{event}"
 end

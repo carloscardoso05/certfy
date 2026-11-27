@@ -65,9 +65,9 @@ defmodule CertfyWeb.Layouts do
 
           <aside class="flex min-h-full w-64 flex-col border-r border-base-300 bg-base-100">
             <.link
-              navigate={~p"/events"}
+              navigate={~p"/"}
               class="flex h-16 items-center gap-2 border-b border-base-300 px-5"
-              aria-label="Certfy — eventos"
+              aria-label="Certfy — início"
             >
               <svg viewBox="0 0 32 32" class="h-8 w-8 text-primary" aria-hidden="true">
                 <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.25" />
@@ -85,6 +85,17 @@ defmodule CertfyWeb.Layouts do
               <ul class="menu w-full gap-1 p-0">
                 <li>
                   <.link
+                    navigate={~p"/"}
+                    class={[
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5",
+                      nav_class(@nav, :home)
+                    ]}
+                  >
+                    <.icon name="hero-home" class="size-5" /> Início
+                  </.link>
+                </li>
+                <li>
+                  <.link
                     navigate={~p"/events"}
                     class={[
                       "flex items-center gap-3 rounded-lg px-3 py-2.5",
@@ -92,17 +103,6 @@ defmodule CertfyWeb.Layouts do
                     ]}
                   >
                     <.icon name="hero-calendar-days" class="size-5" /> Eventos
-                  </.link>
-                </li>
-                <li>
-                  <.link
-                    navigate={~p"/batches"}
-                    class={[
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5",
-                      nav_class(@nav, :batches)
-                    ]}
-                  >
-                    <.icon name="hero-rectangle-stack" class="size-5" /> Lotes
                   </.link>
                 </li>
                 <li>
@@ -117,6 +117,23 @@ defmodule CertfyWeb.Layouts do
                   </.link>
                 </li>
               </ul>
+
+              <div class="mt-6">
+                <p class="px-3 pb-2 text-xs font-medium text-base-content/50">Ajuda</p>
+                <ul class="menu w-full gap-1 p-0">
+                  <li>
+                    <.link
+                      navigate={~p"/como-funciona"}
+                      class={[
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5",
+                        nav_class(@nav, :help)
+                      ]}
+                    >
+                      <.icon name="hero-question-mark-circle" class="size-5" /> Como funciona
+                    </.link>
+                  </li>
+                </ul>
+              </div>
 
               <div :if={admin?(@current_scope)} class="mt-6">
                 <p class="px-3 pb-2 text-xs font-medium text-base-content/50">Administração</p>

@@ -10,14 +10,37 @@ defmodule CertfyWeb.ParticipantLive.Import do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} nav={:participants}>
-      <.breadcrumb items={[
-        %{label: "Participantes", navigate: ~p"/participants"},
-        %{label: "Importar planilha"}
-      ]} />
+      <.breadcrumb
+        :if={@batch}
+        items={[
+          %{label: "Eventos", navigate: ~p"/events"},
+          %{label: @batch.event.name, navigate: ~p"/events/#{@batch.event}"},
+          %{label: @batch.name, navigate: ~p"/batches/#{@batch}"},
+          %{label: "Importar planilha"}
+        ]}
+      />
+
+      <.breadcrumb
+        :if={is_nil(@batch)}
+        items={[
+          %{label: "Participantes", navigate: ~p"/participants"},
+          %{label: "Importar planilha"}
+        ]}
+      />
 
       <.header>
         Importar participantes
         <:subtitle>Envie um CSV ou XLSX para o lote selecionado.</:subtitle>
+
+        <:actions>
+          <.button
+            :if={@batch}
+            variant="ghost"
+            navigate={~p"/participants?batch_id=#{@batch.id}"}
+          >
+            <.icon name="hero-arrow-left" /> Voltar para participantes
+          </.button>
+        </:actions>
       </.header>
 
       <%= case @step do %>
@@ -49,7 +72,12 @@ defmodule CertfyWeb.ParticipantLive.Import do
                 title="Planilha"
                 description="A primeira linha pode conter os títulos das colunas."
               >
-                <.form for={@upload_form} id="import-upload-form" phx-submit="analyze">
+                <.form
+                  for={@upload_form}
+                  id="import-upload-form"
+                  phx-change="validate_upload"
+                  phx-submit="analyze"
+                >
                   <.live_file_input
                     upload={@uploads.planilha}
                     class="file-input file-input-bordered w-full"
@@ -319,6 +347,8 @@ defmodule CertfyWeb.ParticipantLive.Import do
   def handle_event("select_batch", %{"batch_id" => id}, socket) do
     {:noreply, push_patch(socket, to: ~p"/participants/import?batch_id=#{id}")}
   end
+
+  def handle_event("validate_upload", _params, socket), do: {:noreply, socket}
 
   def handle_event("cancel_upload", %{"ref" => ref}, socket) do
     {:noreply, cancel_upload(socket, :planilha, ref)}

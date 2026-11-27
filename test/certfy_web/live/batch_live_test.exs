@@ -53,13 +53,13 @@ defmodule CertfyWeb.BatchLiveTest do
              |> form("#batch-form", batch: @invalid_attrs)
              |> render_change() =~ "não pode ficar em branco"
 
-      assert {:ok, index_live, _html} =
+      assert {:ok, show_live, _html} =
                form_live
                |> form("#batch-form", batch: Map.put(@create_attrs, :event_id, event.id))
                |> render_submit()
-               |> follow_redirect(conn, ~p"/batches")
+               |> follow_redirect(conn)
 
-      html = render(index_live)
+      html = render(show_live)
       assert html =~ "Lote criado com sucesso."
       assert html =~ "some name"
     end
@@ -82,11 +82,11 @@ defmodule CertfyWeb.BatchLiveTest do
         "extra_data" => %{"0" => %{"key" => "turno", "value" => "manhã"}}
       })
 
-      assert {:ok, _index_live, _html} =
+      assert {:ok, _show_live, _html} =
                form_live
                |> form("#batch-form")
                |> render_submit()
-               |> follow_redirect(conn, ~p"/batches")
+               |> follow_redirect(conn)
 
       batch =
         scope

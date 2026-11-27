@@ -87,6 +87,7 @@ defmodule CertfyWeb do
       # Core UI components
       import CertfyWeb.CoreComponents
       import CertfyWeb.Components.KeyValue, only: [key_value: 1, key_value_list: 1]
+      import CertfyWeb.Components.Navigation
       import CertfyWeb.Components.SearchableSelect, only: [searchable_select: 1]
 
       # Common modules used in templates

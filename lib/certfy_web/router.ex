@@ -20,8 +20,6 @@ defmodule CertfyWeb.Router do
   scope "/", CertfyWeb do
     pipe_through :browser
 
-    get "/", HomeController, :index
-
     get "/validar", CertificateController, :validate
     get "/validar/:code", CertificateController, :validate
   end
@@ -67,6 +65,9 @@ defmodule CertfyWeb.Router do
 
     live_session :app, on_mount: @auth_hooks do
       get "/certificates/:id/download", CertificateController, :download
+
+      live "/", DashboardLive, :index
+      live "/como-funciona", HelpLive, :index
 
       live "/events", EventLive.Index, :index
       live "/events/new", EventLive.Form, :new

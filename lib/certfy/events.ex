@@ -95,6 +95,21 @@ defmodule Certfy.Events do
   end
 
   @doc """
+  Counts the participants of an event.
+  """
+  def count_participants_for_event(%Scope{} = scope, %Event{} = event) do
+    Repo.aggregate(
+      from(p in Participant,
+        join: b in Batch,
+        on: p.batch_id == b.id,
+        where: b.event_id == ^event.id and p.user_id == ^scope.user.id
+      ),
+      :count,
+      :id
+    )
+  end
+
+  @doc """
   Gets a single event.
 
   Raises `Ecto.NoResultsError` if the Event does not exist.

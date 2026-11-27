@@ -7,23 +7,78 @@ defmodule CertfyWeb.ParticipantLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} nav={:participants}>
+      <.breadcrumb
+        :if={@context_batch}
+        items={[
+          %{label: "Eventos", navigate: ~p"/events"},
+          %{label: @context_event.name, navigate: ~p"/events/#{@context_event}"},
+          %{label: @context_batch.name, navigate: ~p"/batches/#{@context_batch}"},
+          %{label: "Participantes"}
+        ]}
+      />
+
+      <.breadcrumb
+        :if={is_nil(@context_batch) and @context_event}
+        items={[
+          %{label: "Eventos", navigate: ~p"/events"},
+          %{label: @context_event.name, navigate: ~p"/events/#{@context_event}"},
+          %{label: "Participantes"}
+        ]}
+      />
+
       <.header>
-        Participantes
-        <:subtitle>Todos os participantes dos seus lotes.</:subtitle>
+        {context_title(@context_batch, @context_event)}
+        <:subtitle>{context_subtitle(@context_batch, @context_event)}</:subtitle>
 
         <:actions>
-          <.button variant="soft" navigate={~p"/participants/import"}>
+          <.button variant="soft" navigate={import_path(@context_batch)}>
             <.icon name="hero-table-cells" /> Importar planilha
           </.button>
 
-          <.button variant="primary" navigate={~p"/participants/new"}>
+          <.button variant="primary" navigate={new_participant_path(@context_batch)}>
             <.icon name="hero-plus" /> Novo participante
           </.button>
         </:actions>
       </.header>
 
+      <.event_tabs
+        :if={@context_event}
+        event={@context_event}
+        active={:participants}
+        batch_count={@context_batch_count}
+        participant_count={@context_participant_count}
+      />
+
       <.form for={@filter_form} id="participant-filters" phx-change="filter" class="mb-4">
-        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem_15rem_12rem] md:items-end">
+        <input
+          :if={@context_batch}
+          type="hidden"
+          name="event_id"
+          value={@context_event.id}
+        />
+
+        <input
+          :if={@context_batch}
+          type="hidden"
+          name="batch_id"
+          value={@context_batch.id}
+        />
+
+        <input
+          :if={is_nil(@context_batch) and @context_event}
+          type="hidden"
+          name="event_id"
+          value={@context_event.id}
+        />
+
+        <div class={[
+          "grid gap-3 md:items-end",
+          cond do
+            @context_batch -> "md:grid-cols-[minmax(0,1fr)_12rem]"
+            @context_event -> "md:grid-cols-[minmax(0,1fr)_15rem_12rem]"
+            true -> "md:grid-cols-[minmax(0,1fr)_14rem_15rem_12rem]"
+          end
+        ]}>
           <label class="block">
             <span class="mb-1 block text-sm font-medium">Buscar</span>
             <span class="input input-bordered flex w-full items-center gap-2">
@@ -40,6 +95,7 @@ defmodule CertfyWeb.ParticipantLive.Index do
           </label>
 
           <.searchable_select
+            :if={is_nil(@context_event)}
             id="participant-filter-event"
             name="event_id"
             label="Evento"
@@ -51,6 +107,7 @@ defmodule CertfyWeb.ParticipantLive.Index do
           />
 
           <.searchable_select
+            :if={is_nil(@context_batch)}
             id="participant-filter-batch"
             name="batch_id"
             label="Lote"
@@ -137,28 +194,64 @@ defmodule CertfyWeb.ParticipantLive.Index do
       <div :if={@empty?}>
         <.empty_state
           title={
-            if @has_filters?, do: "Nenhum participante encontrado", else: "Nenhum participante ainda"
+            cond do
+              @has_filters? -> "Nenhum participante encontrado"
+              @context_batch -> "Nenhum participante neste lote"
+              @context_event -> "Nenhum participante neste evento"
+              true -> "Nenhum participante ainda"
+            end
           }
           description={
-            if @has_filters?,
-              do: "Ajuste a busca ou os filtros de evento/lote/certificado.",
-              else: "Abra um lote para cadastrar o primeiro participante."
+            cond do
+              @has_filters? -> "Ajuste a busca ou os filtros de certificado."
+              @context_batch -> "Adicione manualmente ou importe uma planilha CSV ou XLSX."
+              @context_event -> "Abra um lote para adicionar participantes ou importe uma planilha."
+              true -> "Abra um lote para cadastrar o primeiro participante."
+            end
           }
         >
           <:action>
-            <.link :if={@has_filters?} patch={~p"/participants"} class="btn btn-ghost btn-sm">
-              Limpar filtros
-            </.link>
+            <div class="flex flex-wrap items-center justify-center gap-2">
+              <.link
+                :if={@has_filters?}
+                patch={clear_filters_path(@context_batch, @context_event)}
+                class="btn btn-ghost btn-sm"
+              >
+                Limpar filtros
+              </.link>
 
-            <.button :if={!@has_filters?} variant="primary" navigate={~p"/batches"}>
-              <.icon name="hero-rectangle-stack" /> Ver lotes
-            </.button>
+              <.button
+                :if={!@has_filters?}
+                variant="primary"
+                navigate={new_participant_path(@context_batch)}
+              >
+                <.icon name="hero-plus" /> Novo participante
+              </.button>
+
+              <.button :if={!@has_filters?} variant="soft" navigate={import_path(@context_batch)}>
+                <.icon name="hero-table-cells" /> Importar planilha
+              </.button>
+
+              <.button
+                :if={!@has_filters? and is_nil(@context_batch)}
+                variant="ghost"
+                navigate={batches_path(@context_event)}
+              >
+                <.icon name="hero-rectangle-stack" /> Ver lotes
+              </.button>
+            </div>
           </:action>
         </.empty_state>
       </div>
 
       <div :if={!@empty?} class="overflow-hidden rounded-box border border-base-300 bg-base-100">
-        <div class="hidden grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_9rem_13rem] gap-4 border-b border-base-300 px-4 py-3 text-sm font-medium text-base-content/70 md:grid">
+        <div class={[
+          "hidden gap-4 border-b border-base-300 px-4 py-3 text-sm font-medium text-base-content/70 md:grid",
+          if(@context_batch,
+            do: "grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_9rem_13rem]",
+            else: "grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_9rem_13rem]"
+          )
+        ]}>
           <input
             type="checkbox"
             class="checkbox checkbox-sm"
@@ -166,7 +259,8 @@ defmodule CertfyWeb.ParticipantLive.Index do
             phx-click="toggle_page"
             aria-label="Selecionar página"
           />
-          <span>Nome</span> <span>E-mail</span> <span>Evento / lote</span>
+          <span>Nome</span> <span>E-mail</span>
+          <span :if={is_nil(@context_batch)}>Evento / lote</span>
           <span>Certificado</span>
           <span class="text-right">Ações</span>
         </div>
@@ -175,7 +269,13 @@ defmodule CertfyWeb.ParticipantLive.Index do
           <div
             :for={{id, participant} <- @streams.participants}
             id={id}
-            class="relative grid grid-cols-1 gap-2 border-b border-base-300 px-4 py-4 last:border-0 hover:bg-base-200/60 md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_9rem_13rem] md:items-center md:gap-4"
+            class={[
+              "relative grid grid-cols-1 gap-2 border-b border-base-300 px-4 py-4 last:border-0 hover:bg-base-200/60 md:items-center md:gap-4",
+              if(@context_batch,
+                do: "md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_9rem_13rem]",
+                else: "md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_9rem_13rem]"
+              )
+            ]}
           >
             <.link
               navigate={~p"/participants/#{participant}"}
@@ -206,7 +306,7 @@ defmodule CertfyWeb.ParticipantLive.Index do
               <span class="truncate">{participant.email || "—"}</span>
             </div>
 
-            <div class="min-w-0 text-sm text-base-content/70">
+            <div :if={is_nil(@context_batch)} class="min-w-0 text-sm text-base-content/70">
               <p class="truncate">{participant.batch.event.name}</p>
 
               <p class="truncate text-xs">{participant.batch.name}</p>
@@ -299,6 +399,10 @@ defmodule CertfyWeb.ParticipantLive.Index do
      |> assign(:page_info, %{items: [], total: 0, page: 1, pages: 1})
      |> assign(:empty?, true)
      |> assign(:has_filters?, false)
+     |> assign(:context_batch, nil)
+     |> assign(:context_event, nil)
+     |> assign(:context_batch_count, nil)
+     |> assign(:context_participant_count, nil)
      |> assign(:selected, MapSet.new())
      |> assign(:page_ids, [])
      |> assign(:page_all_selected?, false)
@@ -444,6 +548,25 @@ defmodule CertfyWeb.ParticipantLive.Index do
   end
 
   defp load(socket, params, opts \\ []) do
+    context_batch = fetch_batch(socket, params["batch_id"])
+
+    context_event =
+      if context_batch, do: context_batch.event, else: fetch_event(socket, params["event_id"])
+
+    params =
+      cond do
+        context_batch ->
+          params
+          |> Map.put("event_id", to_string(context_event.id))
+          |> Map.put("batch_id", to_string(context_batch.id))
+
+        context_event ->
+          Map.put(params, "event_id", to_string(context_event.id))
+
+        true ->
+          params
+      end
+
     result = Events.list_participants_page_all(socket.assigns.current_scope, params)
 
     filters = %{
@@ -477,7 +600,10 @@ defmodule CertfyWeb.ParticipantLive.Index do
     )
     |> assign(:page_info, result)
     |> assign(:empty?, result.items == [])
-    |> assign(:has_filters?, has_filters?(filters))
+    |> assign(:has_filters?, has_filters?(filters, context_batch, context_event))
+    |> assign(:context_batch, context_batch)
+    |> assign(:context_event, context_event)
+    |> assign_context_counts(context_event)
     |> assign(:selected, selected)
     |> assign(:page_ids, page_ids)
     |> assign(
@@ -487,6 +613,19 @@ defmodule CertfyWeb.ParticipantLive.Index do
     |> assign(:selection_counts, selection_counts(socket, filters))
     |> assign_selection_state()
     |> stream(:participants, result.items, reset: true)
+  end
+
+  defp assign_context_counts(socket, nil) do
+    assign(socket, context_batch_count: nil, context_participant_count: nil)
+  end
+
+  defp assign_context_counts(socket, event) do
+    scope = socket.assigns.current_scope
+
+    assign(socket,
+      context_batch_count: Events.count_batches(scope, event),
+      context_participant_count: Events.count_participants_for_event(scope, event)
+    )
   end
 
   defp assign_selection_state(socket) do
@@ -523,10 +662,52 @@ defmodule CertfyWeb.ParticipantLive.Index do
       Map.take(new, ["q", "event_id", "batch_id", "certificate"])
   end
 
-  defp has_filters?(filters) do
-    filters["q"] != "" or filters["event_id"] != "" or filters["batch_id"] != "" or
-      filters["certificate"] != ""
+  defp has_filters?(filters, context_batch, context_event) do
+    filters["q"] != "" or filters["certificate"] != "" or
+      (is_nil(context_batch) and filters["batch_id"] != "") or
+      (is_nil(context_event) and filters["event_id"] != "")
   end
+
+  defp fetch_batch(_socket, id) when id in [nil, ""], do: nil
+
+  defp fetch_batch(socket, id) do
+    Events.get_batch_with_event!(socket.assigns.current_scope, id)
+  rescue
+    Ecto.NoResultsError -> nil
+  end
+
+  defp fetch_event(_socket, id) when id in [nil, ""], do: nil
+
+  defp fetch_event(socket, id) do
+    Events.get_event!(socket.assigns.current_scope, id)
+  rescue
+    Ecto.NoResultsError -> nil
+  end
+
+  defp context_title(%{name: name}, _event), do: "Participantes do lote #{name}"
+  defp context_title(nil, %{name: name}), do: "Participantes do evento #{name}"
+  defp context_title(nil, nil), do: "Participantes"
+
+  defp context_subtitle(%{name: _name}, %{name: event_name}),
+    do: "Lote do evento #{event_name}."
+
+  defp context_subtitle(nil, %{name: name}),
+    do: "Todos os participantes dos lotes de #{name}."
+
+  defp context_subtitle(nil, nil), do: "Todos os participantes dos seus lotes."
+
+  defp new_participant_path(%{id: id}), do: ~p"/participants/new?batch_id=#{id}"
+  defp new_participant_path(nil), do: ~p"/participants/new"
+
+  defp import_path(%{id: id}), do: ~p"/participants/import?batch_id=#{id}"
+  defp import_path(nil), do: ~p"/participants/import"
+
+  defp batches_path(%{id: id}), do: ~p"/batches?event_id=#{id}"
+  defp batches_path(nil), do: ~p"/batches"
+
+  defp clear_filters_path(%{id: id}, _event), do: ~p"/participants?batch_id=#{id}"
+  defp clear_filters_path(nil, %{id: id}), do: ~p"/participants?event_id=#{id}"
+  defp clear_filters_path(nil, nil), do: ~p"/participants"
 
   defp toggle_id(selected, id) do
     if MapSet.member?(selected, id),
