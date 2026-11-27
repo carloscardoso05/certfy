@@ -1,10 +1,16 @@
-# Production stack for Dokploy.
+# Production stack for Dokploy (pull-only).
+#
+# The image is built outside the server and pulled from a registry; Dokploy
+# never builds it. For a local build, combine with docker-compose.build.yml:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml up --build
 #
 # Dokploy injects the Traefik labels/network when you add a domain to the
 # `app` service (port 4000). The only requirement is that this file keeps the
 # `dokploy-network` network attached to `app`.
 #
 # Required environment variables (set in the Dokploy "Environment" tab):
+#   CERTFY_IMAGE          image reference, e.g. ghcr.io/carloscardoso05/certfy:0.1.0-abc1234
 #   APP_HOST              public hostname, e.g. certificados.suaempresa.com
 #   SECRET_KEY_BASE       generated with: mix phx.gen.secret
 #   POSTGRES_PASSWORD     password of the internal database
@@ -15,21 +21,17 @@
 #   POSTGRES_USER (certfy), POSTGRES_DB (certfy), POOL_SIZE (10),
 #   RUSTFS_BUCKET (certfy-templates), CERTIFICATE_FROM_EMAIL,
 #   CERTIFICATE_FROM_NAME, CERTFY_ADMIN_EMAIL, SMTP_* (see config/runtime.exs),
-#   CERTFY_TAG (image tag, defaults to latest).
-
-name: certfy
+#   BRAND_NAME, BRAND_THEME, BRAND_MARK, BRAND_FROM_EMAIL.
 
 x-app: &app
-  image: certfy:${CERTFY_TAG:-latest}
+  image: ${CERTFY_IMAGE:?CERTFY_IMAGE is required}
   restart: unless-stopped
   stop_grace_period: 30s
+  pull_policy: always
 
 services:
   app:
     <<: *app
-    build:
-      context: .
-      dockerfile: Dockerfile
     environment:
       PHX_SERVER: "true"
       PORT: "4000"

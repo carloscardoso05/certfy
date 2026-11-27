@@ -1,0 +1,15 @@
+# Local override to build the image instead of pulling it.
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml build
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml up
+#
+# Keep CERTFY_IMAGE set to the name/tag you also push to the registry.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    pull_policy: build
+
+  migrate:
+    pull_policy: missing
