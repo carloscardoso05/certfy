@@ -26,6 +26,9 @@ services:
       PHX_SERVER: "true"
       PORT: "4000"
       PHX_HOST: ${APP_HOST:?APP_HOST is required}
+      PHX_SCHEME: ${PHX_SCHEME:-https}
+      PHX_PORT: ${PHX_PORT:-443}
+      FORCE_SSL: ${FORCE_SSL:-true}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE is required}
       DATABASE_URL: ecto://${POSTGRES_USER:-certfy}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-certfy}
       POOL_SIZE: ${POOL_SIZE:-10}
