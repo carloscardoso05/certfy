@@ -39,6 +39,16 @@ defmodule CertfyWeb.DashboardLiveTest do
     assert html =~ "Comece pelo seu primeiro evento"
   end
 
+  test "shows data from every user to an admin", %{conn: conn} do
+    other_scope = Certfy.AccountsFixtures.user_scope_fixture()
+    other_event = event_fixture(other_scope, %{name: "Evento de outra pessoa"})
+    admin = Certfy.AccountsFixtures.admin_fixture()
+
+    {:ok, _lv, html} = conn |> log_in_user(admin) |> live(~p"/")
+
+    assert html =~ other_event.name
+  end
+
   test "shows attention items for incomplete setups", %{conn: conn, scope: scope} do
     _event = event_fixture(scope, %{name: "Sem modelo"})
 

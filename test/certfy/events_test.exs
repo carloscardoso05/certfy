@@ -283,6 +283,73 @@ defmodule Certfy.EventsTest do
     end
   end
 
+  describe "admin access" do
+    import Certfy.AccountsFixtures, only: [admin_scope_fixture: 0, user_scope_fixture: 0]
+    import Certfy.EventsFixtures
+
+    setup do
+      owner = user_scope_fixture()
+      event = event_fixture(owner)
+      batch = batch_fixture(owner, event)
+      participant = participant_fixture(owner, batch)
+
+      %{
+        admin: admin_scope_fixture(),
+        owner: owner,
+        event: event,
+        batch: batch,
+        participant: participant
+      }
+    end
+
+    test "lists and gets records of every user", %{
+      admin: admin,
+      event: event,
+      batch: batch,
+      participant: participant
+    } do
+      assert event.id in Enum.map(Events.list_events(admin), & &1.id)
+      assert batch.id in Enum.map(Events.list_batches(admin), & &1.id)
+      assert participant.id in Enum.map(Events.list_participants(admin), & &1.id)
+
+      assert %{total: 1} = Events.list_events_page(admin, %{})
+      assert %{total: 1} = Events.list_participants_page_all(admin, %{})
+      assert Events.get_event!(admin, event.id).id == event.id
+      assert Events.get_batch!(admin, batch.id).id == batch.id
+      assert Events.get_participant!(admin, participant.id).id == participant.id
+      assert Events.count_participants_for_event(admin, event) == 1
+      assert [%{id: id}] = Events.list_participants_for_event(admin, event)
+      assert id == participant.id
+    end
+
+    test "keeps the original owner when updating", %{admin: admin, event: event} do
+      {:ok, updated} = Events.update_event(admin, event, %{name: "Editado pelo admin"})
+
+      assert updated.name == "Editado pelo admin"
+      assert updated.user_id == event.user_id
+    end
+
+    test "creates children for the owner of the parent record", %{
+      admin: admin,
+      event: event,
+      batch: batch,
+      owner: owner
+    } do
+      {:ok, created_batch} = Events.create_batch(admin, event, %{name: "Turma do admin"})
+      assert created_batch.user_id == owner.user.id
+
+      {:ok, created_participant} = Events.create_participant(admin, batch, %{name: "Maria"})
+      assert created_participant.user_id == owner.user.id
+    end
+
+    test "keeps other records hidden for regular users", %{event: event} do
+      other = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn -> Events.get_event!(other, event.id) end
+      refute event.id in Enum.map(Events.list_events(other), & &1.id)
+    end
+  end
+
   describe "participants" do
     alias Certfy.Events.Participant
 

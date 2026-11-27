@@ -18,7 +18,9 @@ defmodule Certfy.Certificates do
   end
 
   def get_certificate!(%Scope{} = scope, id) do
-    Repo.get_by!(Certificate, id: id, user_id: scope.user.id)
+    from(c in Certificate, where: c.id == ^id)
+    |> Scope.owned(scope)
+    |> Repo.one!()
   end
 
   def get_certificate(id) do
@@ -35,7 +37,9 @@ defmodule Certfy.Certificates do
   end
 
   def get_certificate_for_participant(%Scope{} = scope, participant_id) do
-    Repo.get_by(Certificate, participant_id: participant_id, user_id: scope.user.id)
+    from(c in Certificate, where: c.participant_id == ^participant_id)
+    |> Scope.owned(scope)
+    |> Repo.one()
   end
 
   def get_certificate_for_download(%Scope{} = scope, id) do
@@ -124,9 +128,10 @@ defmodule Certfy.Certificates do
   def send_emails(%Scope{} = scope, participant_ids) when is_list(participant_ids) do
     certificates =
       from(c in Certificate,
-        where: c.user_id == ^scope.user.id and c.participant_id in ^participant_ids,
+        where: c.participant_id in ^participant_ids,
         preload: [:participant]
       )
+      |> Scope.owned(scope)
       |> Repo.all()
 
     {to_queue, stats} =
@@ -164,24 +169,24 @@ defmodule Certfy.Certificates do
 
   def prepare_for_batch(%Scope{} = scope, batch_id) do
     ids =
-      Repo.all(
-        from(p in Participant,
-          where: p.user_id == ^scope.user.id and p.batch_id == ^batch_id,
-          select: p.id
-        )
+      from(p in Participant,
+        where: p.batch_id == ^batch_id,
+        select: p.id
       )
+      |> Scope.owned(scope)
+      |> Repo.all()
 
     prepare_for_participants(scope, ids)
   end
 
   def send_emails_for_batch(%Scope{} = scope, batch_id) do
     ids =
-      Repo.all(
-        from(p in Participant,
-          where: p.user_id == ^scope.user.id and p.batch_id == ^batch_id,
-          select: p.id
-        )
+      from(p in Participant,
+        where: p.batch_id == ^batch_id,
+        select: p.id
       )
+      |> Scope.owned(scope)
+      |> Repo.all()
 
     send_emails(scope, ids)
   end
@@ -262,16 +267,18 @@ defmodule Certfy.Certificates do
     from(p in Participant,
       join: b in assoc(p, :batch),
       join: e in assoc(b, :event),
-      where: p.user_id == ^scope.user.id and p.id in ^ids,
+      where: p.id in ^ids,
       preload: [batch: :event]
     )
+    |> Scope.owned(scope)
     |> Repo.all()
   end
 
   defp certificates_by_participant(scope, participant_ids) do
     from(c in Certificate,
-      where: c.user_id == ^scope.user.id and c.participant_id in ^participant_ids
+      where: c.participant_id in ^participant_ids
     )
+    |> Scope.owned(scope)
     |> Repo.all()
     |> Map.new(&{&1.participant_id, &1})
   end
@@ -324,17 +331,19 @@ defmodule Certfy.Certificates do
   def selection_summary(%Scope{} = scope, participant_ids) do
     certificates =
       from(c in Certificate,
-        where: c.user_id == ^scope.user.id and c.participant_id in ^participant_ids,
+        where: c.participant_id in ^participant_ids,
         select: {c.status, c.emailed_at}
       )
+      |> Scope.owned(scope)
       |> Repo.all()
 
     no_email =
       from(p in Participant,
-        where: p.user_id == ^scope.user.id and p.id in ^participant_ids,
+        where: p.id in ^participant_ids,
         where: is_nil(p.email) or p.email == "",
         select: count(p.id)
       )
+      |> Scope.owned(scope)
       |> Repo.one()
 
     %{
@@ -349,15 +358,17 @@ defmodule Certfy.Certificates do
   def batch_stats(%Scope{} = scope, batch_id) do
     total =
       from(p in Participant,
-        where: p.user_id == ^scope.user.id and p.batch_id == ^batch_id,
+        where: p.batch_id == ^batch_id,
         select: count(p.id)
       )
+      |> Scope.owned(scope)
       |> Repo.one()
 
     certificates =
       from(c in Certificate,
-        where: c.user_id == ^scope.user.id and c.batch_id == ^batch_id
+        where: c.batch_id == ^batch_id
       )
+      |> Scope.owned(scope)
       |> Repo.all()
 
     %{
@@ -368,10 +379,11 @@ defmodule Certfy.Certificates do
       sent: Enum.count(certificates, &(not is_nil(&1.emailed_at))),
       no_email:
         from(p in Participant,
-          where: p.user_id == ^scope.user.id and p.batch_id == ^batch_id,
+          where: p.batch_id == ^batch_id,
           where: is_nil(p.email) or p.email == "",
           select: count(p.id)
         )
+        |> Scope.owned(scope)
         |> Repo.one()
     }
   end
@@ -387,9 +399,9 @@ defmodule Certfy.Certificates do
     from(p in Participant,
       join: b in assoc(p, :batch),
       join: e in assoc(b, :event),
-      left_join: c in assoc(p, :certificate),
-      where: p.user_id == ^scope.user.id
+      left_join: c in assoc(p, :certificate)
     )
+    |> Scope.owned(scope)
     |> filter_query(filters)
   end
 

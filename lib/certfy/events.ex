@@ -42,7 +42,9 @@ defmodule Certfy.Events do
 
   """
   def list_events(%Scope{} = scope) do
-    Repo.all_by(Event, user_id: scope.user.id)
+    from(e in Event)
+    |> Scope.owned(scope)
+    |> Repo.all()
   end
 
   @doc """
@@ -56,7 +58,8 @@ defmodule Certfy.Events do
     per_page = 25
 
     query =
-      from(e in Event, where: e.user_id == ^scope.user.id)
+      from(e in Event)
+      |> Scope.owned(scope)
       |> filter_event_query(opts)
       |> order_events(opts["sort"])
 
@@ -77,7 +80,8 @@ defmodule Certfy.Events do
   """
   def count_batches(%Scope{} = scope, %Event{} = event) do
     Repo.aggregate(
-      from(b in Batch, where: b.event_id == ^event.id and b.user_id == ^scope.user.id),
+      from(b in Batch, where: b.event_id == ^event.id)
+      |> Scope.owned(scope),
       :count,
       :id
     )
@@ -88,7 +92,8 @@ defmodule Certfy.Events do
   """
   def count_participants(%Scope{} = scope, %Batch{} = batch) do
     Repo.aggregate(
-      from(p in Participant, where: p.batch_id == ^batch.id and p.user_id == ^scope.user.id),
+      from(p in Participant, where: p.batch_id == ^batch.id)
+      |> Scope.owned(scope),
       :count,
       :id
     )
@@ -102,8 +107,9 @@ defmodule Certfy.Events do
       from(p in Participant,
         join: b in Batch,
         on: p.batch_id == b.id,
-        where: b.event_id == ^event.id and p.user_id == ^scope.user.id
-      ),
+        where: b.event_id == ^event.id
+      )
+      |> Scope.owned(scope),
       :count,
       :id
     )
@@ -124,7 +130,9 @@ defmodule Certfy.Events do
 
   """
   def get_event!(%Scope{} = scope, id) do
-    Repo.get_by!(Event, id: id, user_id: scope.user.id)
+    from(e in Event, where: e.id == ^id)
+    |> Scope.owned(scope)
+    |> Repo.one!()
   end
 
   @doc """
@@ -162,7 +170,7 @@ defmodule Certfy.Events do
 
   """
   def update_event(%Scope{} = scope, %Event{} = event, attrs) do
-    true = event.user_id == scope.user.id
+    true = Scope.owner?(scope, event)
 
     with {:ok, event = %Event{}} <-
            event
@@ -177,7 +185,7 @@ defmodule Certfy.Events do
   Updates the template path and its analysis report.
   """
   def update_event_template(%Scope{} = scope, %Event{} = event, attrs) do
-    true = event.user_id == scope.user.id
+    true = Scope.owner?(scope, event)
 
     with {:ok, event = %Event{}} <-
            event
@@ -201,7 +209,7 @@ defmodule Certfy.Events do
 
   """
   def delete_event(%Scope{} = scope, %Event{} = event) do
-    true = event.user_id == scope.user.id
+    true = Scope.owner?(scope, event)
 
     with {:ok, event = %Event{}} <-
            Repo.delete(event) do
@@ -220,7 +228,7 @@ defmodule Certfy.Events do
 
   """
   def change_event(%Scope{} = scope, %Event{} = event, attrs \\ %{}) do
-    true = event.user_id == scope.user.id
+    true = Scope.owner?(scope, event)
 
     Event.changeset(event, attrs, scope)
   end
@@ -260,14 +268,18 @@ defmodule Certfy.Events do
 
   """
   def list_batches(%Scope{} = scope) do
-    Repo.all_by(Batch, user_id: scope.user.id)
+    from(b in Batch)
+    |> Scope.owned(scope)
+    |> Repo.all()
   end
 
   @doc """
   Returns all batches of the user with their event preloaded.
   """
   def list_batches_with_events(%Scope{} = scope) do
-    Repo.all_by(Batch, user_id: scope.user.id)
+    from(b in Batch)
+    |> Scope.owned(scope)
+    |> Repo.all()
     |> Repo.preload(:event)
   end
 
@@ -275,7 +287,9 @@ defmodule Certfy.Events do
   Returns the list of batches for the given event.
   """
   def list_batches(%Scope{} = scope, %Event{} = event) do
-    Repo.all_by(Batch, user_id: scope.user.id, event_id: event.id)
+    from(b in Batch, where: b.event_id == ^event.id)
+    |> Scope.owned(scope)
+    |> Repo.all()
   end
 
   @doc """
@@ -289,9 +303,9 @@ defmodule Certfy.Events do
 
     query =
       from(b in Batch,
-        join: e in assoc(b, :event),
-        where: b.user_id == ^scope.user.id
+        join: e in assoc(b, :event)
       )
+      |> Scope.owned(scope)
       |> filter_batch_query(opts)
       |> order_by([b], desc: b.updated_at)
 
@@ -323,7 +337,9 @@ defmodule Certfy.Events do
 
   """
   def get_batch!(%Scope{} = scope, id) do
-    Repo.get_by!(Batch, id: id, user_id: scope.user.id)
+    from(b in Batch, where: b.id == ^id)
+    |> Scope.owned(scope)
+    |> Repo.one!()
   end
 
   @doc """
@@ -341,7 +357,9 @@ defmodule Certfy.Events do
   Raises `Ecto.NoResultsError` if the Batch does not exist.
   """
   def get_batch!(%Scope{} = scope, %Event{} = event, id) do
-    Repo.get_by!(Batch, id: id, user_id: scope.user.id, event_id: event.id)
+    from(b in Batch, where: b.id == ^id and b.event_id == ^event.id)
+    |> Scope.owned(scope)
+    |> Repo.one!()
   end
 
   @doc """
@@ -357,11 +375,12 @@ defmodule Certfy.Events do
 
   """
   def create_batch(%Scope{} = scope, %Event{} = event, attrs) do
-    true = event.user_id === scope.user.id
+    true = Scope.owner?(scope, event)
 
     with {:ok, batch = %Batch{}} <-
            event
            |> Ecto.build_assoc(:batches)
+           |> Map.put(:user_id, event.user_id)
            |> Batch.changeset(attrs, scope)
            |> Repo.insert() do
       broadcast_batch(scope, {:created, batch})
@@ -382,7 +401,7 @@ defmodule Certfy.Events do
 
   """
   def update_batch(%Scope{} = scope, %Batch{} = batch, attrs) do
-    true = batch.user_id == scope.user.id
+    true = Scope.owner?(scope, batch)
 
     with {:ok, batch = %Batch{}} <-
            batch
@@ -406,7 +425,7 @@ defmodule Certfy.Events do
 
   """
   def delete_batch(%Scope{} = scope, %Batch{} = batch) do
-    true = batch.user_id == scope.user.id
+    true = Scope.owner?(scope, batch)
 
     with {:ok, batch = %Batch{}} <-
            Repo.delete(batch) do
@@ -425,7 +444,7 @@ defmodule Certfy.Events do
 
   """
   def change_batch(%Scope{} = scope, %Batch{} = batch, attrs \\ %{}) do
-    true = batch.user_id == scope.user.id
+    true = Scope.owner?(scope, batch)
 
     Batch.changeset(batch, attrs, scope)
   end
@@ -465,14 +484,18 @@ defmodule Certfy.Events do
 
   """
   def list_participants(%Scope{} = scope) do
-    Repo.all_by(Participant, user_id: scope.user.id)
+    from(p in Participant)
+    |> Scope.owned(scope)
+    |> Repo.all()
   end
 
   @doc """
   Returns the list of participants for the given batch.
   """
   def list_participants(%Scope{} = scope, %Batch{} = batch) do
-    Repo.all_by(Participant, user_id: scope.user.id, batch_id: batch.id)
+    from(p in Participant, where: p.batch_id == ^batch.id)
+    |> Scope.owned(scope)
+    |> Repo.all()
   end
 
   @doc """
@@ -486,8 +509,9 @@ defmodule Certfy.Events do
 
     query =
       from(p in Participant,
-        where: p.batch_id == ^batch.id and p.user_id == ^scope.user.id
+        where: p.batch_id == ^batch.id
       )
+      |> Scope.owned(scope)
       |> filter_participant_query(opts)
       |> order_by([p], asc: p.name)
 
@@ -516,9 +540,9 @@ defmodule Certfy.Events do
       from(p in Participant,
         join: b in assoc(p, :batch),
         join: e in assoc(b, :event),
-        left_join: c in assoc(p, :certificate),
-        where: p.user_id == ^scope.user.id
+        left_join: c in assoc(p, :certificate)
       )
+      |> Scope.owned(scope)
       |> filter_global_participant_query(opts)
       |> order_by([p], asc: p.name)
 
@@ -549,7 +573,9 @@ defmodule Certfy.Events do
 
   """
   def get_participant!(%Scope{} = scope, id) do
-    Repo.get_by!(Participant, id: id, user_id: scope.user.id)
+    from(p in Participant, where: p.id == ^id)
+    |> Scope.owned(scope)
+    |> Repo.one!()
   end
 
   @doc """
@@ -558,9 +584,10 @@ defmodule Certfy.Events do
   def list_participants_for_event(%Scope{} = scope, %Event{} = event) do
     from(p in Participant,
       join: b in assoc(p, :batch),
-      where: p.user_id == ^scope.user.id and b.event_id == ^event.id,
+      where: b.event_id == ^event.id,
       order_by: [asc: p.name]
     )
+    |> Scope.owned(scope)
     |> Repo.all()
   end
 
@@ -579,7 +606,9 @@ defmodule Certfy.Events do
   Raises `Ecto.NoResultsError` if the Participant does not exist.
   """
   def get_participant!(%Scope{} = scope, %Batch{} = batch, id) do
-    Repo.get_by!(Participant, id: id, user_id: scope.user.id, batch_id: batch.id)
+    from(p in Participant, where: p.id == ^id and p.batch_id == ^batch.id)
+    |> Scope.owned(scope)
+    |> Repo.one!()
   end
 
   @doc """
@@ -595,11 +624,12 @@ defmodule Certfy.Events do
 
   """
   def create_participant(%Scope{} = scope, %Batch{} = batch, attrs) do
-    true = batch.user_id === scope.user.id
+    true = Scope.owner?(scope, batch)
 
     with {:ok, participant = %Participant{}} <-
            batch
            |> Ecto.build_assoc(:participants)
+           |> Map.put(:user_id, batch.user_id)
            |> Participant.changeset(attrs, scope)
            |> Repo.insert() do
       broadcast_participant(scope, {:created, participant})
@@ -614,7 +644,7 @@ defmodule Certfy.Events do
   no deduplication: every row is inserted.
   """
   def import_participants(%Scope{} = scope, %Batch{} = batch, rows) when is_list(rows) do
-    true = batch.user_id === scope.user.id
+    true = Scope.owner?(scope, batch)
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     entries =
@@ -623,7 +653,7 @@ defmodule Certfy.Events do
           name: row.name,
           email: row.email,
           extra_data: row.extra_data || %{},
-          user_id: scope.user.id,
+          user_id: batch.user_id,
           batch_id: batch.id,
           inserted_at: now,
           updated_at: now
@@ -652,7 +682,7 @@ defmodule Certfy.Events do
 
   """
   def update_participant(%Scope{} = scope, %Participant{} = participant, attrs) do
-    true = participant.user_id == scope.user.id
+    true = Scope.owner?(scope, participant)
 
     with {:ok, participant = %Participant{}} <-
            participant
@@ -676,7 +706,7 @@ defmodule Certfy.Events do
 
   """
   def delete_participant(%Scope{} = scope, %Participant{} = participant) do
-    true = participant.user_id == scope.user.id
+    true = Scope.owner?(scope, participant)
 
     with {:ok, participant = %Participant{}} <-
            Repo.delete(participant) do
@@ -695,7 +725,7 @@ defmodule Certfy.Events do
 
   """
   def change_participant(%Scope{} = scope, %Participant{} = participant, attrs \\ %{}) do
-    true = participant.user_id == scope.user.id
+    true = Scope.owner?(scope, participant)
 
     Participant.changeset(participant, attrs, scope)
   end

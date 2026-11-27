@@ -24,6 +24,14 @@ defmodule Certfy.Events.Batch do
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:event_id)
     |> unique_constraint([:event_id, :name])
-    |> put_change(:user_id, user_scope.user.id)
+    |> put_owner(user_scope)
   end
+
+  # An admin may edit records owned by other users, so the owner is only set
+  # when the record is being created.
+  defp put_owner(%Ecto.Changeset{data: %{user_id: nil}} = changeset, user_scope) do
+    put_change(changeset, :user_id, user_scope.user.id)
+  end
+
+  defp put_owner(changeset, _user_scope), do: changeset
 end

@@ -191,5 +191,15 @@ defmodule CertfyWeb.EventLiveTest do
       assert html =~ "Enviado"
       assert html =~ "Gerenciar modelo"
     end
+
+    test "lets an admin open an event owned by another user", %{conn: conn} do
+      owner_scope = Certfy.AccountsFixtures.user_scope_fixture()
+      event = event_fixture(owner_scope, %{name: "Evento de outro usuário"})
+      admin = Certfy.AccountsFixtures.admin_fixture()
+
+      {:ok, _show_live, html} = conn |> log_in_user(admin) |> live(~p"/events/#{event}")
+
+      assert html =~ "Evento de outro usuário"
+    end
   end
 end

@@ -1,6 +1,9 @@
 defmodule Certfy.Dashboard do
   @moduledoc """
   Scoped summaries for the home dashboard.
+
+  Admins see aggregates for every record, while regular users only see their
+  own data.
   """
 
   import Ecto.Query, warn: false
@@ -14,14 +17,12 @@ defmodule Certfy.Dashboard do
   Returns the counters shown on the dashboard for the given scope.
   """
   def summary(%Scope{} = scope) do
-    user_id = scope.user.id
-
     %{
-      events: count_events(user_id),
-      batches: count_batches(user_id),
-      participants: count_participants(user_id),
-      certificates: certificate_counts(user_id),
-      attention: attention_counts(user_id)
+      events: count_events(scope),
+      batches: count_batches(scope),
+      participants: count_participants(scope),
+      certificates: certificate_counts(scope),
+      attention: attention_counts(scope)
     }
   end
 
@@ -29,26 +30,23 @@ defmodule Certfy.Dashboard do
   Returns the most recently updated events with batch and participant counts.
   """
   def recent_events(%Scope{} = scope, limit \\ 5) do
-    user_id = scope.user.id
-
     batch_counts =
       from(b in Batch,
-        where: b.user_id == ^user_id,
         group_by: b.event_id,
         select: %{event_id: b.event_id, total: count(b.id)}
       )
+      |> Scope.owned(scope)
 
     participant_counts =
       from(p in Participant,
         join: b in Batch,
         on: p.batch_id == b.id,
-        where: p.user_id == ^user_id,
         group_by: b.event_id,
         select: %{event_id: b.event_id, total: count(p.id)}
       )
+      |> Scope.owned(scope)
 
     from(e in Event,
-      where: e.user_id == ^user_id,
       order_by: [desc: e.updated_at, desc: e.id],
       limit: ^limit,
       left_join: bc in subquery(batch_counts),
@@ -65,36 +63,44 @@ defmodule Certfy.Dashboard do
         participant_count: coalesce(pc.total, 0)
       }
     )
+    |> Scope.owned(scope)
     |> Repo.all()
   end
 
-  defp count_events(user_id) do
-    Repo.aggregate(from(e in Event, where: e.user_id == ^user_id), :count, :id)
+  defp count_events(scope) do
+    from(e in Event)
+    |> Scope.owned(scope)
+    |> Repo.aggregate(:count, :id)
   end
 
-  defp count_batches(user_id) do
-    Repo.aggregate(from(b in Batch, where: b.user_id == ^user_id), :count, :id)
+  defp count_batches(scope) do
+    from(b in Batch)
+    |> Scope.owned(scope)
+    |> Repo.aggregate(:count, :id)
   end
 
-  defp count_participants(user_id) do
-    Repo.aggregate(from(p in Participant, where: p.user_id == ^user_id), :count, :id)
+  defp count_participants(scope) do
+    from(p in Participant)
+    |> Scope.owned(scope)
+    |> Repo.aggregate(:count, :id)
   end
 
-  defp certificate_counts(user_id) do
+  defp certificate_counts(scope) do
     status_counts =
       from(c in Certificate,
-        where: c.user_id == ^user_id,
         group_by: c.status,
         select: {c.status, count(c.id)}
       )
+      |> Scope.owned(scope)
       |> Repo.all()
       |> Map.new()
 
     sent =
       from(c in Certificate,
-        where: c.user_id == ^user_id and not is_nil(c.emailed_at),
+        where: not is_nil(c.emailed_at),
         select: count(c.id)
       )
+      |> Scope.owned(scope)
       |> Repo.one()
 
     %{
@@ -105,36 +111,29 @@ defmodule Certfy.Dashboard do
     }
   end
 
-  defp attention_counts(user_id) do
+  defp attention_counts(scope) do
     %{
       events_without_template:
-        Repo.aggregate(
-          from(e in Event, where: e.user_id == ^user_id and is_nil(e.template_path)),
-          :count,
-          :id
-        ),
-      batches_without_participants: count_batches_without_participants(user_id),
+        from(e in Event, where: is_nil(e.template_path))
+        |> Scope.owned(scope)
+        |> Repo.aggregate(:count, :id),
+      batches_without_participants: count_batches_without_participants(scope),
       participants_without_email:
-        Repo.aggregate(
-          from(p in Participant,
-            where: p.user_id == ^user_id,
-            where: is_nil(p.email) or p.email == ""
-          ),
-          :count,
-          :id
-        )
+        from(p in Participant, where: is_nil(p.email) or p.email == "")
+        |> Scope.owned(scope)
+        |> Repo.aggregate(:count, :id)
     }
   end
 
-  defp count_batches_without_participants(user_id) do
+  defp count_batches_without_participants(scope) do
     from(b in Batch,
-      where: b.user_id == ^user_id,
       left_join: p in Participant,
       on: p.batch_id == b.id,
       group_by: b.id,
       having: count(p.id) == 0,
       select: b.id
     )
+    |> Scope.owned(scope)
     |> Repo.all()
     |> length()
   end

@@ -18,6 +18,8 @@ defmodule Certfy.Accounts.Scope do
 
   alias Certfy.Accounts.User
 
+  import Ecto.Query, only: [where: 3]
+
   defstruct user: nil
 
   @doc """
@@ -36,4 +38,30 @@ defmodule Certfy.Accounts.Scope do
   """
   def admin?(%__MODULE__{user: %User{role: :ADMIN}}), do: true
   def admin?(_scope), do: false
+
+  @doc """
+  Restricts a query to the records owned by the scoped user.
+
+  Admins see every record, so no restriction is applied.
+  """
+  def owned(query, %__MODULE__{} = scope) do
+    case owner_id(scope) do
+      nil -> query
+      id -> where(query, [first], first.user_id == ^id)
+    end
+  end
+
+  @doc """
+  Returns the id used to restrict owned records, or nil when the scope has
+  access to the records of every user.
+  """
+  def owner_id(%__MODULE__{user: %User{role: :ADMIN}}), do: nil
+  def owner_id(%__MODULE__{user: %User{id: id}}), do: id
+
+  @doc """
+  Returns true when the scoped user owns the given record.
+  """
+  def owner?(%__MODULE__{} = scope, %{user_id: user_id}) do
+    admin?(scope) or user_id == scope.user.id
+  end
 end

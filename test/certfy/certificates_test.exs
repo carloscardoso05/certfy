@@ -175,4 +175,26 @@ defmodule Certfy.CertificatesTest do
       assert stats.failed == 0
     end
   end
+
+  describe "admin access" do
+    import Certfy.AccountsFixtures, only: [admin_scope_fixture: 0]
+
+    test "manages certificates owned by other users", %{
+      scope: owner_scope,
+      participant: participant
+    } do
+      Certificates.prepare_for_participants(owner_scope, [participant.id])
+      admin = admin_scope_fixture()
+
+      certificate = Certificates.get_certificate_for_participant(admin, participant.id)
+      assert certificate.participant_id == participant.id
+
+      assert Certificates.get_certificate!(admin, certificate.id).id == certificate.id
+      assert %{total: 1} = Certificates.batch_stats(admin, participant.batch_id)
+      assert %{total: 1} = Certificates.selection_summary(admin, [participant.id])
+      assert Certificates.participant_ids(admin, %{}, :all) == [participant.id]
+      assert %{selected: 1} = Certificates.prepare_for_participants(admin, [participant.id])
+      assert %{selected: 1} = Certificates.send_emails_for_batch(admin, participant.batch_id)
+    end
+  end
 end
