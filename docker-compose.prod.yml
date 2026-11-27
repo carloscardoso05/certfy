@@ -1,0 +1,135 @@
+# Production stack for Dokploy.
+#
+# Dokploy injects the Traefik labels/network when you add a domain to the
+# `app` service (port 4000). The only requirement is that this file keeps the
+# `dokploy-network` network attached to `app`.
+#
+# Required environment variables (set in the Dokploy "Environment" tab):
+#   APP_HOST              public hostname, e.g. certificados.suaempresa.com
+#   SECRET_KEY_BASE       generated with: mix phx.gen.secret
+#   POSTGRES_PASSWORD     password of the internal database
+#   RUSTFS_ACCESS_KEY     object storage access key
+#   RUSTFS_SECRET_KEY     object storage secret key
+#
+# Optional:
+#   POSTGRES_USER (certfy), POSTGRES_DB (certfy), POOL_SIZE (10),
+#   RUSTFS_BUCKET (certfy-templates), CERTIFICATE_FROM_EMAIL,
+#   CERTIFICATE_FROM_NAME, CERTFY_ADMIN_EMAIL, SMTP_* (see config/runtime.exs),
+#   CERTFY_TAG (image tag, defaults to latest).
+
+name: certfy
+
+x-app: &app
+  image: certfy:${CERTFY_TAG:-latest}
+  restart: unless-stopped
+  stop_grace_period: 30s
+
+services:
+  app:
+    <<: *app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PHX_SERVER: "true"
+      PORT: "4000"
+      PHX_HOST: ${APP_HOST:?APP_HOST is required}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE is required}
+      DATABASE_URL: ecto://${POSTGRES_USER:-certfy}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-certfy}
+      POOL_SIZE: ${POOL_SIZE:-10}
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
+      RUSTFS_SCHEME: "http://"
+      RUSTFS_HOST: rustfs
+      RUSTFS_PORT: "9000"
+      RUSTFS_REGION: ${RUSTFS_REGION:-us-east-1}
+      RUSTFS_BUCKET: ${RUSTFS_BUCKET:-certfy-templates}
+      GOTENBERG_URL: http://gotenberg:3000
+      CERTIFICATE_FROM_EMAIL: ${CERTIFICATE_FROM_EMAIL:-no-reply@certfy.local}
+      CERTIFICATE_FROM_NAME: ${CERTIFICATE_FROM_NAME:-Certfy}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_TLS: ${SMTP_TLS:-if_available}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+      gotenberg:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - internal
+      - dokploy-network
+
+  # One-shot migration runner. Runs before `app` starts and exits.
+  migrate:
+    <<: *app
+    command: ["bin/certfy", "eval", "Certfy.Release.migrate()"]
+    restart: "no"
+    environment:
+      PHX_HOST: ${APP_HOST:?APP_HOST is required}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE is required}
+      DATABASE_URL: ecto://${POSTGRES_USER:-certfy}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-certfy}
+      POOL_SIZE: "2"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:19-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-certfy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-certfy}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-certfy} -d ${POSTGRES_DB:-certfy}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - internal
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
+    volumes:
+      - rustfs_data:/data
+    networks:
+      - internal
+
+  gotenberg:
+    image: gotenberg/gotenberg:9-libreoffice
+    restart: unless-stopped
+    environment:
+      LIBREOFFICE_AUTO_START: "true"
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  rustfs_data:
+
+networks:
+  internal:
+  # Created by Dokploy. It is how Traefik reaches the app container.
+  dokploy-network:
+    external: true

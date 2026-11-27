@@ -20,6 +20,7 @@ defmodule CertfyWeb.Router do
   scope "/", CertfyWeb do
     pipe_through :browser
 
+    get "/health", HealthController, :index
     get "/validar", CertificateController, :validate
     get "/validar/:code", CertificateController, :validate
   end

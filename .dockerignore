@@ -1,0 +1,25 @@
+# Build artifacts
+_build/
+deps/
+doc/
+cover/
+.fetch
+erl_crash.dump
+*.ez
+certfy-*.tar
+
+# Assets generated during the image build
+priv/static/assets/
+priv/static/cache_manifest.json
+
+# Local environment and tooling
+.env
+.env.*
+.mix_tasks
+/tmp/
+*.log
+
+# Git and tests
+.git/
+.gitignore
+test/

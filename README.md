@@ -67,6 +67,75 @@ The QR code contains only the 10-character certificate code.
 
 Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
 
+## Production deploy (Dokploy)
+
+The production stack lives in `docker-compose.prod.yml` and builds the image from
+`Dockerfile` (Elixir release on Debian slim, running as a non-root user).
+
+Services:
+
+- `app` — Phoenix release on port `4000`, internal only; Dokploy injects the
+  Traefik router/labels when you add a domain to this service.
+- `migrate` — one-shot `Certfy.Release.migrate()`; `app` only starts after it
+  succeeds.
+- `postgres`, `rustfs`, `gotenberg` — internal services with named volumes.
+- `/health` is a public, database-free liveness endpoint used by the container
+  healthcheck (and excluded from `force_ssl` redirects).
+
+### Required environment variables
+
+| Variable | Notes |
+|---|---|
+| `APP_HOST` | Public hostname used by Phoenix (`PHX_HOST`) |
+| `SECRET_KEY_BASE` | Generate with `mix phx.gen.secret` |
+| `POSTGRES_PASSWORD` | Password for the internal database |
+| `RUSTFS_ACCESS_KEY` | Object storage access key |
+| `RUSTFS_SECRET_KEY` | Object storage secret key |
+
+Optional: `POSTGRES_USER`, `POSTGRES_DB`, `POOL_SIZE`, `RUSTFS_BUCKET`,
+`RUSTFS_REGION`, `CERTIFICATE_FROM_EMAIL`, `CERTIFICATE_FROM_NAME`,
+`CERTFY_ADMIN_EMAIL`, `SMTP_*` (see `config/runtime.exs`).
+
+`POSTGRES_PASSWORD` is interpolated into `DATABASE_URL`, so use a URL-safe
+password (letters, digits and `-_.~`) or set `DATABASE_URL` explicitly.
+
+### Steps in Dokploy
+
+1. Create a **Compose** application pointing to this repository and to
+   `docker-compose.prod.yml`.
+2. Fill the environment variables above in the Dokploy **Environment** tab.
+3. Add a domain to the `app` service (container port `4000`). Dokploy/Traefik
+   handles TLS; no labels or `ports:` are needed in the compose file.
+4. Deploy. The `migrate` service runs first and the app starts afterwards.
+
+The compose file attaches `app` to the external `dokploy-network`; keep that
+network name unless your Dokploy installation uses another one.
+
+### First admin
+
+After the first deploy, create the admin user once:
+
+```bash
+docker compose -f docker-compose.prod.yml run --rm app \
+  bin/certfy eval "Certfy.Release.seed()"
+```
+
+Set `CERTFY_ADMIN_EMAIL` before running it (defaults to `admin@certfy.local`).
+
+### Backups
+
+`postgres_data` and `rustfs_data` are named volumes. Back them up with
+`pg_dump` and by copying/exporting the object storage bucket. Note that
+PostgreSQL 19 stores data in `/var/lib/postgresql/19/docker`, which is why the
+volume is mounted at `/var/lib/postgresql`.
+
+### Local smoke test of the production image
+
+```bash
+docker build -t certfy:local .
+docker run --rm -p 4000:4000 --env-file .env.prod certfy:local
+```
+
 ## Learn more
 
 * Official website: https://www.phoenixframework.org/
